@@ -189,6 +189,10 @@ if ($forceUpdate -Or ($isFirstShell -And $isNotVSCode -And $isDailyCheckDue)) {
             '"Set-Item Env:\__ForceUpdateCheck $true; Start-Process pwsh"'
         }
     }
+} else {
+    Write-Host "Skipping daily check for package updates."
+    Write-Host "To force a re-run of this profile script, type : " -NoNewLine
+    '"Set-Item Env:\__ForceUpdateCheck $true; Start-Process pwsh"'
 }
 
 # Useful functions
