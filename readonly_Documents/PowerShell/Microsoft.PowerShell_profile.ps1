@@ -211,6 +211,53 @@ function ForceUpdateCheck() {
     }
 }
 
+# Useful functions for Linux-like behavior
+
+# Enhanced ls function to handle common Linux flags
+function ls {
+    param(
+        [Parameter(ValueFromRemainingArguments=$true)]
+        $args
+    )
+    
+    $force = $false
+    $recurse = $false
+    $directory = $false
+    $sortBy = $null
+    $remainingArgs = @()
+    
+    foreach ($arg in $args) {
+        switch -Regex ($arg) {
+            '^-[alAhRrtSd]*$' {
+                # Parse combined flags like -la, -lah, etc.
+                if ($arg -match 'a|A') { $force = $true }
+                if ($arg -match 'R|r') { $recurse = $true }
+                if ($arg -match 't') { $sortBy = 'LastWriteTime' }
+                if ($arg -match 'S') { $sortBy = 'Length' }
+                if ($arg -match 'd') { $directory = $true }
+                # Note: -l and -h are implicit in PowerShell's default output
+            }
+            default {
+                $remainingArgs += $arg
+            }
+        }
+    }
+    
+    $params = @{}
+    if ($force) { $params['Force'] = $true }
+    if ($recurse) { $params['Recurse'] = $true }
+    if ($directory) { $params['Directory'] = $true }
+    if ($remainingArgs.Count -gt 0) { $params['Path'] = $remainingArgs }
+    
+    $result = Get-ChildItem @params
+    
+    if ($sortBy) {
+        $result | Sort-Object $sortBy -Descending
+    } else {
+        $result
+    }
+}
+
 # Useful aliases
 Set-Alias grep findstr
 Set-Alias touch New-Item
@@ -218,6 +265,9 @@ Set-Alias cat Get-Content
 Set-Alias make mingw32-make
 Set-Alias dopus Set-Location-Directory-Opus
 Set-Alias pbpaste Get-Clipboard
+Set-Alias cz chezmoi
+Set-Alias cze 'chezmoi edit'
+Set-Alias cza 'chezmoi apply'
 
 # Oh My Posh
 if ($env:USE_OH_MY_POSH -eq 'true' -and $Env:TERM_PROGRAM -ne 'vscode') {
