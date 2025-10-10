@@ -275,7 +275,7 @@ function cze { chezmoi edit @args }
 function cza { chezmoi apply @args }
 
 # Prompt setup - Starship has priority, then Oh My Posh
-if (Get-Command starship -ErrorAction SilentlyContinue -and $Env:TERM_PROGRAM -ne 'vscode') {
+if ((Get-Command starship -ErrorAction SilentlyContinue) -and ($Env:TERM_PROGRAM -ne 'vscode')) {
     # Starship prompt
     Invoke-Expression (& starship init powershell)
 }
