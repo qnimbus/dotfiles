@@ -23,10 +23,11 @@
 	signingkey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJjtSV0bDhvCWCcKAD+Kece829AJvzZiaE207NAOaoti
 
 [core]
+	# Line-ending normalization (cross-platform safe)
 	autocrlf = input
 	eol = lf
+
 {{- if eq .chezmoi.os "windows" }}
-	# Force Windows OpenSSH and point -F at your ~/.ssh/config with a templated home.
-	# We emit forward slashes so OpenSSH doesn't misparse backslashes.
+	# Windows-specific SSH configuration
 	sshCommand = C:/Windows/System32/OpenSSH/ssh.exe -F "{{ .chezmoi.homeDir | replace "\\" "/" }}/.ssh/config"
 {{- end }}
