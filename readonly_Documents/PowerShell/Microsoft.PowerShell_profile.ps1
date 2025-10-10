@@ -262,16 +262,15 @@ function Get-LSListing {
 Set-Alias ls Get-LSListing
 Set-Alias ll Get-ChildItem
 Set-Alias grep findstr
-Set-Alias touch New-Item
-Set-Alias mkdir New-Item -ItemType Directory
-Set-Alias rm Remove-Item
-Set-Alias cat Get-Content
-Set-Alias make mingw32-make
-Set-Alias dopus Set-Location-Directory-Opus
-Set-Alias pbpaste Get-Clipboard
-Set-Alias cz chezmoi
+function touch { New-Item -ItemType File @args -Force }
+function mkdir { New-Item -ItemType Directory @args }
+function rm { Remove-Item @args }
+function cat { Get-Content @args }
+function dopus { Set-Location-Directory-Opus @args }
+function pbpaste { Get-Clipboard @args }
 
 # Chezmoi functions for multi-word commands
+Set-Alias cz chezmoi
 function cze { chezmoi edit @args }
 function cza { chezmoi apply @args }
 
