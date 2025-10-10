@@ -270,8 +270,10 @@ Set-Alias make mingw32-make
 Set-Alias dopus Set-Location-Directory-Opus
 Set-Alias pbpaste Get-Clipboard
 Set-Alias cz chezmoi
-Set-Alias cze chezmoi edit
-Set-Alias cza chezmoi apply
+
+# Chezmoi functions for multi-word commands
+function cze { chezmoi edit @args }
+function cza { chezmoi apply @args }
 
 # Prompt setup - Starship has priority, then Oh My Posh
 if (Get-Command starship -ErrorAction SilentlyContinue -and $Env:TERM_PROGRAM -ne 'vscode') {
