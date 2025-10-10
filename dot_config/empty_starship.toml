@@ -1,7 +1,8 @@
 # ~/.config/starship.toml
+
 # -- Minimal, colorful, and elegant PowerShell theme --
 
-add_newline = true
+add_newline = false
 format = """
 [](color_blue)\
 $directory\
