@@ -1,0 +1,150 @@
+# This config file and the *.pub files in this folder are automatically
+# generated and managed by 1Password. Any manual edits to this file or
+# any *.pub file will be lost.
+#
+# You can include this file in your main SSH config by adding the
+# following line to your ~/.ssh/config file:
+#
+#   Include ~/.ssh/1Password/config
+
+# 1Password Item: Proxmox - PVE2
+Match Host 10.10.0.3 User root
+  IdentitiesOnly yes
+  IdentityFile ~/.ssh/1Password/SHA256_0g5ftgjiKolmjYTWBNLs9Ir45ePEebh1Tf1WropJbA4.pub
+
+# 1Password Item: Proxmox - PVE2
+Match Host pve2.lan.home.vwn.io User root
+  IdentitiesOnly yes
+  IdentityFile ~/.ssh/1Password/SHA256_0g5ftgjiKolmjYTWBNLs9Ir45ePEebh1Tf1WropJbA4.pub
+
+# 1Password Item: Home Assistant SSH
+Match Host ha.lan.home.vwn.io User root
+  IdentitiesOnly yes
+  IdentityFile ~/.ssh/1Password/SHA256_Kfvc695EqmD3HAsEGwDxUIA+9O9vcWeeaxTn4dTAQTg.pub
+
+# 1Password Item: Proxmox - PVE3
+Match Host 10.10.0.4 User root
+  IdentitiesOnly yes
+  IdentityFile ~/.ssh/1Password/SHA256_0g5ftgjiKolmjYTWBNLs9Ir45ePEebh1Tf1WropJbA4.pub
+
+# 1Password Item: Proxmox - PVE3
+Match Host pve3.lan.home.vwn.io User root
+  IdentitiesOnly yes
+  IdentityFile ~/.ssh/1Password/SHA256_0g5ftgjiKolmjYTWBNLs9Ir45ePEebh1Tf1WropJbA4.pub
+
+# 1Password Item: JetKVM 3
+Match Host 10.100.0.53 User root
+  IdentitiesOnly yes
+  IdentityFile ~/.ssh/1Password/SHA256_XMvAE+hX6fM8fmM_dwhbcshJ+t02Ezw2jWj1RuTnc+g.pub
+
+# 1Password Item: JetKVM 3
+Match Host jetkvm3.lan.home.vwn.io User root
+  IdentitiesOnly yes
+  IdentityFile ~/.ssh/1Password/SHA256_XMvAE+hX6fM8fmM_dwhbcshJ+t02Ezw2jWj1RuTnc+g.pub
+
+# 1Password Item: github.com
+Match Host github.com User git
+  IdentitiesOnly yes
+  IdentityFile ~/.ssh/1Password/SHA256_5iZX1ydY_2EN9QkjfOoRJE9YDe3j7edt+EjkkS8PRn4.pub
+
+# 1Password Item: Unifi UDM Pro Max - Gateway
+Match Host 10.10.0.1 User root
+  IdentitiesOnly yes
+  IdentityFile ~/.ssh/1Password/SHA256_gGJ1NEAPmZbfEzroDqk++g_rHsU6ZGyCCeUe8f5pu7E.pub
+
+# 1Password Item: Unifi USW-Pro-Max - Switch
+Match Host 192.168.1.10 User admin
+  IdentitiesOnly yes
+  IdentityFile ~/.ssh/1Password/SHA256_Gxe7ef+D_kJL6cPWsASVcVOIYe7QLpyAv5fAnDMtAYQ.pub
+
+# 1Password Item: Unifi AC IW - Access point
+Match Host 192.168.1.14 User admin
+  IdentitiesOnly yes
+  IdentityFile ~/.ssh/1Password/SHA256_ZVXfT7lqa0K9fzPiWawq+Kw1eZ4VOhROJEpK4oBcsZo.pub
+
+# 1Password Item: Unifi USG Aggregation - Switch
+Match Host 192.168.1.20 User admin
+  IdentitiesOnly yes
+  IdentityFile ~/.ssh/1Password/SHA256_Gxe7ef+D_kJL6cPWsASVcVOIYe7QLpyAv5fAnDMtAYQ.pub
+
+# 1Password Item: TrueNAS
+Match Host truenas.lan.home.vwn.io User bas
+  IdentitiesOnly yes
+  IdentityFile ~/.ssh/1Password/SHA256_QpH8L6Z9N53kLgTH81Lww10sGWLYU5GNZ7nEGw5z6cg.pub
+
+# 1Password Item: ubuntu server - bas
+Match Host ubuntu.lan.home.vwn.io User bas
+  IdentitiesOnly yes
+  IdentityFile ~/.ssh/1Password/SHA256_J1RHPKjYBYOpgswEu_fUCoHUPt+xQ2rEO4DlfWIdekU.pub
+
+# 1Password Item: vps.vwn.io - ubuntu
+Match Host vps.vwn.io User ubuntu
+  IdentitiesOnly yes
+  IdentityFile ~/.ssh/1Password/SHA256_8l52M6KHBJBvasqGWFEo07+EUvGLQO5MnztYnbMH9oQ.pub
+
+# 1Password Item: Unifi UAP-AC-IW - Zolder
+Match Host 192.168.1.14 User admin
+  IdentitiesOnly yes
+  IdentityFile ~/.ssh/1Password/SHA256_Gxe7ef+D_kJL6cPWsASVcVOIYe7QLpyAv5fAnDMtAYQ.pub
+
+# 1Password Item: id_ed25519_10.72.200.3
+Match Host 10.72.200.3 User bas
+  IdentitiesOnly yes
+  IdentityFile ~/.ssh/1Password/SHA256_XrZPeM2Q0xwVf7fYd2Rfm2uiFv4GCs5r6WdW26eTtlU.pub
+
+# 1Password Item: Proxmox - PVE1
+Match Host 10.10.0.2 User root
+  IdentitiesOnly yes
+  IdentityFile ~/.ssh/1Password/SHA256_0g5ftgjiKolmjYTWBNLs9Ir45ePEebh1Tf1WropJbA4.pub
+
+# 1Password Item: Proxmox - PVE1
+Match Host pve1.lan.home.vwn.io User root
+  IdentitiesOnly yes
+  IdentityFile ~/.ssh/1Password/SHA256_0g5ftgjiKolmjYTWBNLs9Ir45ePEebh1Tf1WropJbA4.pub
+
+# 1Password Item: LXC - PVE3 - 201 - Nginx Proxy Manager
+Match Host 10.10.0.60 User root
+  IdentitiesOnly yes
+  IdentityFile ~/.ssh/1Password/SHA256_dQs2zM0n1vZo_7jMCz7tAy2ilc8+_lYYBk3Wa8tnsoI.pub
+
+# 1Password Item: vps.vwn.io - root
+Match Host vps.vwn.io User root
+  IdentitiesOnly yes
+  IdentityFile ~/.ssh/1Password/SHA256_8l52M6KHBJBvasqGWFEo07+EUvGLQO5MnztYnbMH9oQ.pub
+
+# 1Password Item: JetKVM 2
+Match Host 10.100.0.52 User root
+  IdentitiesOnly yes
+  IdentityFile ~/.ssh/1Password/SHA256_b8ti3G3iPDMoqwvS20lUVlBQ4U6vXde3sbXVxVMA6U.pub
+
+# 1Password Item: JetKVM 2
+Match Host jetkvm2.lan.home.vwn.io User root
+  IdentitiesOnly yes
+  IdentityFile ~/.ssh/1Password/SHA256_b8ti3G3iPDMoqwvS20lUVlBQ4U6vXde3sbXVxVMA6U.pub
+
+# 1Password Item: Unifi NVR
+Match Host unifi-nvr.cam.home.vwn.io User root
+  IdentitiesOnly yes
+  IdentityFile ~/.ssh/1Password/SHA256_2ImE_Mr_nmIvBvYy1IKeZWiMJwt3TyZVr0xTi3FEdXs.pub
+
+# 1Password Item: JetKVM 1
+Match Host 10.100.0.51 User root
+  IdentitiesOnly yes
+  IdentityFile ~/.ssh/1Password/SHA256_hXauSvjTh60ptAJnwy+fYgc9ZXsh3z+lD6a0daf+VOA.pub
+
+# 1Password Item: JetKVM 1
+Match Host jetkvm1.lan.home.vwn.io User root
+  IdentitiesOnly yes
+  IdentityFile ~/.ssh/1Password/SHA256_hXauSvjTh60ptAJnwy+fYgc9ZXsh3z+lD6a0daf+VOA.pub
+
+# 1Password Item: Proxmox - PVE4
+Match Host 10.10.0.5 User root
+  IdentitiesOnly yes
+  IdentityFile ~/.ssh/1Password/SHA256_0g5ftgjiKolmjYTWBNLs9Ir45ePEebh1Tf1WropJbA4.pub
+
+# 1Password Item: Proxmox - PVE4
+Match Host pve4.lan.home.vwn.io User root
+  IdentitiesOnly yes
+  IdentityFile ~/.ssh/1Password/SHA256_0g5ftgjiKolmjYTWBNLs9Ir45ePEebh1Tf1WropJbA4.pub
+
+Match all
