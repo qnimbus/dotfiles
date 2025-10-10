@@ -108,7 +108,7 @@ if ($forceUpdate -Or ($isFirstShell -And $isNotVSCode -And $isDailyCheckDue)) {
     }
 
     # Get available upgrades
-    $upgradeResult = winget upgrade --include-unknown --source winget
+    $upgradeResult = winget upgrade --include-unknown
 
     # Loop through the list and get package data
     $upgrades = @()
