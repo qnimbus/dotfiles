@@ -1,18 +1,26 @@
+# ~/.gitconfig.tmpl
+
 [init]
-  defaultBranch = main
-  
+	defaultBranch = main
+
 [gpg]
 	format = ssh
+
 [gpg "ssh"]
-	program = C:\\Users\\bas\\AppData\\Local\\1Password\\app\\8\\op-ssh-sign.exe
+	# Use 1Password's SSH signer; LOCALAPPDATA keeps it portable on Windows.
+	# Forward slashes work fine in Git config on Windows.
+	program = {{ env "LOCALAPPDATA" }}/1Password/app/8/op-ssh-sign.exe
+
 [commit]
 	gpgsign = true
 
 [user]
 	email = bas@vanwetten.com
 	name = B. van Wetten
+	# Keep your existing SSH signing key as-is
 	signingkey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJjtSV0bDhvCWCcKAD+Kece829AJvzZiaE207NAOaoti
+
 [core]
-	sshCommand = C:/Windows/System32/OpenSSH/ssh.exe -F \"C:/Users/bas/.ssh/config\"
-	autocrlf = input
-	eol = lf
+	# Force Windows OpenSSH and point -F at your ~/.ssh/config with a templated home.
+	# We emit forward slashes so OpenSSH doesn't misparse backslashes.
+	sshCommand = C:/Windows/System32/OpenSSH/ssh.exe -F "{{ .chezmoi.homeDir | replace "\\" "/" }}/.ssh/config"
