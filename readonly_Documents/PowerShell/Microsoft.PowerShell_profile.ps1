@@ -271,11 +271,16 @@ Set-Alias cz chezmoi
 Set-Alias cze 'chezmoi edit'
 Set-Alias cza 'chezmoi apply'
 
-# Oh My Posh
-if ($env:USE_OH_MY_POSH -eq 'true' -and $Env:TERM_PROGRAM -ne 'vscode') {
+# Prompt setup - Starship has priority, then Oh My Posh
+if (Get-Command starship -ErrorAction SilentlyContinue -and $Env:TERM_PROGRAM -ne 'vscode') {
+    # Starship prompt
+    Invoke-Expression (& starship init powershell)
+}
+elseif ($env:USE_OH_MY_POSH -eq 'true' -and $Env:TERM_PROGRAM -ne 'vscode') {
+    # Oh My Posh
     oh-my-posh init pwsh --config "$env:POSH_THEMES_PATH/nordtron.omp.json" | Invoke-Expression
 }
 else {
     # Vanilla PowerShell
-    Write-Host "Using vanilla PowerShell without oh-my-posh."
+    Write-Host "Using vanilla PowerShell without starship or oh-my-posh."
 }
