@@ -14,3 +14,5 @@
 	signingkey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJjtSV0bDhvCWCcKAD+Kece829AJvzZiaE207NAOaoti
 [core]
 	sshCommand = C:/Windows/System32/OpenSSH/ssh.exe -F \"C:/Users/bas/.ssh/config\"
+	autocrlf = input
+	eol = lf
