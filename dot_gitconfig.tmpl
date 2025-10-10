@@ -10,7 +10,7 @@
 {{- if eq .chezmoi.os "windows" }}
 	# Use 1Password's SSH signer; LOCALAPPDATA keeps it portable on Windows.
 	# Forward slashes work fine in Git config on Windows.
-	program = {{ env "LOCALAPPDATA" }}/1Password/app/8/op-ssh-sign.exe
+	program = {{ (env "LOCALAPPDATA") | replace "\\" "/" }}/1Password/app/8/op-ssh-sign.exe
 {{- end }}
 
 [commit]
@@ -23,6 +23,8 @@
 	signingkey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJjtSV0bDhvCWCcKAD+Kece829AJvzZiaE207NAOaoti
 
 [core]
+	autocrlf = input
+	eol = lf
 {{- if eq .chezmoi.os "windows" }}
 	# Force Windows OpenSSH and point -F at your ~/.ssh/config with a templated home.
 	# We emit forward slashes so OpenSSH doesn't misparse backslashes.
