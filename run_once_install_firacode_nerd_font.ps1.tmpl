@@ -1,0 +1,66 @@
+{{- if eq .chezmoi.os "windows" -}}
+# One-time install of FiraCode Nerd Font (v3.4.0) for current user (per-user fonts).
+# - Downloads ZIP from Nerd Fonts release
+# - Extracts *.ttf
+# - Copies to %LOCALAPPDATA%\Microsoft\Windows\Fonts
+# - Broadcasts WM_FONTCHANGE so apps pick it up
+
+$ErrorActionPreference = "Stop"
+Set-StrictMode -Version Latest
+
+$FontZipUrl  = "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/FiraCode.zip"
+$FontsDir    = Join-Path $env:LOCALAPPDATA "Microsoft\Windows\Fonts"
+$TempDir     = Join-Path $env:TEMP "firacode-nerd-font-$(Get-Date -Format 'yyyyMMddHHmmss')"
+$ExpectedPattern = "FiraCode*Nerd*.ttf"
+
+# 1) Idempotency: if any FiraCode Nerd TTF already present, skip
+if (Test-Path (Join-Path $FontsDir $ExpectedPattern)) {
+  Write-Host "FiraCode Nerd Font already present in $FontsDir — skipping."
+  return
+}
+
+# 2) Download & extract
+New-Item -ItemType Directory -Force -Path $TempDir | Out-Null
+$ZipPath = Join-Path $TempDir "FiraCode.zip"
+
+Write-Host "Downloading $FontZipUrl …"
+Invoke-WebRequest -Uri $FontZipUrl -OutFile $ZipPath
+
+Write-Host "Extracting $ZipPath …"
+Expand-Archive -Path $ZipPath -DestinationPath $TempDir -Force
+
+# 3) Install to per-user Fonts folder
+New-Item -ItemType Directory -Force -Path $FontsDir | Out-Null
+$ttfs = Get-ChildItem -Path $TempDir -Recurse -Include *.ttf
+
+if (-not $ttfs -or $ttfs.Count -lt 4) {
+  throw "No TTF files found in the archive (or too few)."
+}
+
+foreach ($f in $ttfs) {
+  # Remove Zone.Identifier (if present) to avoid any blocks
+  try { Unblock-File -Path $f.FullName -ErrorAction Stop } catch {}
+  Copy-Item $f.FullName -Destination $FontsDir -Force
+}
+
+# 4) Tell Windows "fonts changed" so apps refresh
+$signature = @'
+using System;
+using System.Runtime.InteropServices;
+public static class NativeMethods {
+  [DllImport("user32.dll", SetLastError=true)]
+  public static extern IntPtr SendMessageTimeout(
+    IntPtr hWnd, uint Msg, UIntPtr wParam, string lParam,
+    uint fuFlags, uint uTimeout, out UIntPtr lpdwResult);
+}
+'@
+Add-Type -TypeDefinition $signature -ErrorAction SilentlyContinue | Out-Null
+$HWND_BROADCAST   = [IntPtr]0xffff
+$WM_FONTCHANGE    = 0x001D
+$SMTO_ABORTIFHUNG = 0x0002
+[UIntPtr]$result  = [UIntPtr]::Zero
+[void][NativeMethods]::SendMessageTimeout($HWND_BROADCAST, $WM_FONTCHANGE, [UIntPtr]::Zero, $null, $SMTO_ABORTIFHUNG, 100, [ref]$result)
+
+Write-Host "Installed $($ttfs.Count) TTFs to $FontsDir."
+Write-Host "FiraCode Nerd Font install routine completed."
+{{- end -}}

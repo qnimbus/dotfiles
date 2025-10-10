@@ -185,14 +185,12 @@ if ($forceUpdate -Or ($isFirstShell -And $isNotVSCode -And $isDailyCheckDue)) {
                 'winget upgrade --include-unknown --source {0} {1}' -f $($_.Source), $_.Id
             }
 
-            Write-Host "To force a re-run of this profile script, type : " -NoNewLine
-            '"Set-Item Env:\__ForceUpdateCheck $true; Start-Process pwsh"'
+            Write-Host "To force a re-run of this profile script, type: fuc"
         }
     }
 } else {
     Write-Host "Skipping daily check for package updates."
-    Write-Host "To force a re-run of this profile script, type : " -NoNewLine
-    '"Set-Item Env:\__ForceUpdateCheck $true; Start-Process pwsh"'
+    Write-Host "To force a re-run of this profile script, type: fuc"
 }
 
 # Useful functions
@@ -277,6 +275,9 @@ function pbpaste { Get-Clipboard @args }
 Set-Alias cz chezmoi
 function cze { chezmoi edit @args }
 function cza { chezmoi apply @args }
+
+# Force update check alias
+Set-Alias fuc ForceUpdateCheck
 
 # Prompt setup - Starship has priority, then Oh My Posh
 if ((Get-Command starship -ErrorAction SilentlyContinue) -and ($Env:TERM_PROGRAM -ne 'vscode')) {
