@@ -1,66 +1,46 @@
-"$schema" = 'https://starship.rs/config-schema.json'
-# ~/.config/starship.toml
-
-# Inserts a blank line between shell prompts
-add_newline = true
-
 format = """
-[](color_blue)\
+$username\
+$hostname\
 $directory\
-[](bg:color_purple fg:color_blue)\
 $git_branch\
+$git_state\
 $git_status\
-[](fg:color_purple bg:color_orange)\
-$kubernetes\
-[](fg:color_orange bg:color_bg)\
-$time\
-[](fg:color_bg)$character
-"""
+$cmd_duration\
+$line_break\
+$python\
+$character"""
 
-# Define custom palette
-palette = "custom"
-
-[palettes.custom]
-color_blue   = "#1E88E5"
-color_purple = "#8E24AA"
-color_orange = "#FB8C00"
-color_bg     = "#1E1E2E"
-color_fg     = "#D8DEE9"
-
-# Directory module
 [directory]
-style = "bg:color_blue fg:white bold"
-read_only = "🔒"
-truncation_length = 3
-truncate_to_repo = false
-format = "[$path]($style)[$read_only]($style)"
+style = "blue"
 
-# Git branch and status
+[character]
+success_symbol = "[❯](purple)"
+error_symbol = "[❯](red)"
+vimcmd_symbol = "[❮](green)"
+
 [git_branch]
-symbol = ""
-style = "bg:color_purple fg:white"
-format = " [$symbol $branch]($style) "
+format = "[$branch]($style)"
+style = "bright-black"
 
 [git_status]
-style = "bg:color_purple fg:white"
-format = "[$all_status$ahead_behind]($style)"
+format = "[[(*$conflicted$untracked$modified$staged$renamed$deleted)](218) ($ahead_behind$stashed)]($style)"
+style = "cyan"
+conflicted = "​"
+untracked = "​"
+modified = "​"
+staged = "​"
+renamed = "​"
+deleted = "​"
+stashed = "≡"
 
-# Kubernetes context (optional)
-[kubernetes]
-symbol = "☸"
-style = "bg:color_orange fg:white"
-disabled = false
-format = " [$symbol $context]($style)"
+[git_state]
+format = '\([$state( $progress_current/$progress_total)]($style)\) '
+style = "bright-black"
 
-# Time module (optional, right segment)
-[time]
-disabled = false
-time_format = "%H:%M"
-style = "bg:color_bg fg:color_fg"
-format = " 🕒 [$time]($style)"
+[cmd_duration]
+format = "[$duration]($style) "
+style = "yellow"
 
-# Prompt character
-[character]
-success_symbol = "[➜](bold green)"
-error_symbol   = "[➜](bold red)"
-vicmd_symbol   = "[❮](bold yellow)"
+[python]
+format = "[$virtualenv]($style) "
+style = "bright-black"
