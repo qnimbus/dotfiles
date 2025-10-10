@@ -278,6 +278,8 @@ function cza { chezmoi apply @args }
 if ((Get-Command starship -ErrorAction SilentlyContinue) -and ($Env:TERM_PROGRAM -ne 'vscode')) {
     # Starship prompt
     Invoke-Expression (& starship init powershell)
+
+    Write-Host "Using starship prompt." -ForegroundColor Green
 }
 elseif ($env:USE_OH_MY_POSH -eq 'true' -and $Env:TERM_PROGRAM -ne 'vscode') {
     # Oh My Posh
