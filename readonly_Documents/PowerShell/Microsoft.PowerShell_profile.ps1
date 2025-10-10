@@ -214,7 +214,7 @@ function ForceUpdateCheck() {
 # Useful functions for Linux-like behavior
 
 # Enhanced ls function to handle common Linux flags
-function ls {
+function Get-LSListing {
     param(
         [Parameter(ValueFromRemainingArguments=$true)]
         $args
@@ -259,6 +259,8 @@ function ls {
 }
 
 # Useful aliases
+Set-Alias ls Get-LSListing
+Set-Alias ll Get-ChildItem
 Set-Alias grep findstr
 Set-Alias touch New-Item
 Set-Alias cat Get-Content
