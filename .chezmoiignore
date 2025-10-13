@@ -1,4 +1,5 @@
 README.md
+Documents
 Documents/*
 
 {{- if eq .chezmoi.os "windows" }}
