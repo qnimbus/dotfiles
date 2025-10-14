@@ -26,25 +26,11 @@ brew install chezmoi
 sudo apt update && sudo apt install -y chezmoi
 ```
 
-**Fedora**
-
-```bash
-sudo dnf install -y chezmoi
-```
-
 ---
 
 ### 2. Initialize from this repo
 
 > 🧠 Use HTTPS if SSH isn’t configured yet; otherwise prefer SSH (via 1Password agent).
-
-**SSH**
-
-```bash
-chezmoi -S "$HOME/.dotfiles" init --apply qnimbus
-```
-
-**HTTPS**
 
 ```bash
 chezmoi -S "$HOME/.dotfiles" init --apply qnimbus
