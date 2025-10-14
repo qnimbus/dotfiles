@@ -1,5 +1,4 @@
 README.md
-settings.json
 
 {{- if ne .chezmoi.os "windows" }}
 Documents
