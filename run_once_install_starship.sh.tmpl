@@ -11,7 +11,7 @@ has() { command -v "$1" >/dev/null 2>&1; }
 # helper: append line to file only if exact line not present
 ensure_line() {
   local line="$1" file="$2"
-  grep -qxF "$line" "$file" 2>/dev/null || printf '%s\n' "$line" >> "$file"
+  grep -qxF "$line" "$file" 2>/dev/null || printf '%b\n' "$line" >> "$file"
 }
 
 ##########
@@ -36,7 +36,7 @@ BASHRC="$HOME/.bashrc"
 
 # Create a separate section in .bashrc
 
-ensure_line "\n" "$BASHRC"
+ensure_line "\n\n" "$BASHRC"
 ensure_line "### chezmoi edit ###" "$BASHRC"
 ensure_line "\n" "$BASHRC"
 
