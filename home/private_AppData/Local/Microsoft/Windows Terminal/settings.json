@@ -35,7 +35,7 @@
     {
         "defaults": 
         {
-            "colorScheme": "One Half Dark",
+            "colorScheme": "Solarized Light",
             "font": 
             {
                 "face": "FiraCode Nerd Font Mono"
