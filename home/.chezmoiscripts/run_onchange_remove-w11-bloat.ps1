@@ -129,14 +129,15 @@ Remove-ProvisionedByDisplayName -DisplayNamePattern $Junk
 
 # Wait 10 seconds of a keypress before closing
 Write-Host "Done. (Press any key to close, or wait 10 seconds...)"
-$timeout = 10
+$timeout = 5
 $start = Get-Date
-$host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-if ($host.UI.RawUI.KeyAvailable) {
-    $null = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-    break
+while ($true) {
+    if ($host.UI.RawUI.KeyAvailable) {
+        $null = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+        break
+    }
+    if ((Get-Date) - $start -gt (New-TimeSpan -Seconds $timeout)) {
+        break
+    }
+    Start-Sleep -Milliseconds 100
 }
-if ((Get-Date) - $start -gt (New-TimeSpan -Seconds $timeout)) {
-    break
-}
-Start-Sleep -Milliseconds 100
