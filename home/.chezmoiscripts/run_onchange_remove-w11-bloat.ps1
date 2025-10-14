@@ -127,5 +127,8 @@ Remove-AppxMatching -Pattern $Junk -AllUsers
 Write-Host "`nRemoving provisioned apps."
 Remove-ProvisionedByDisplayName -DisplayNamePattern $Junk
 
-# Wait for keypress before closing (for testing)
-Read-Host -Prompt "Press Enter to exit"
+# Wait 10 seconds of a keypress before closing
+Start-Sleep -Seconds 10
+Write-Host "Done. (This window will close in 10 seconds.)"
+Write-Host "Press any key to close now..."
+$x = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
