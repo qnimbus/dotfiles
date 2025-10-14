@@ -41,6 +41,11 @@ ensure_line "\n\n### chezmoi edit ###\n" "$BASHRC"
 # Put ~/.local/bin on PATH for future bash shells (before starship init)
 ensure_line 'export PATH="$HOME/.local/bin:$PATH"' "$BASHRC"
 
+# Add chezmoi aliases and functions
+ensure_line 'alias cz=chezmoi' "$BASHRC"
+ensure_line 'function cze() { chezmoi edit "$@"; }' "$BASHRC"
+ensure_line 'function cza() { chezmoi apply "$@"; }' "$BASHRC"
+
 # Enable starship for bash (idempotent)
 ensure_line 'eval "$(starship init bash)"' "$BASHRC"
 
