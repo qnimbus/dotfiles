@@ -1,5 +1,3 @@
-{{ if and (eq .osid "windows") (not .ephemeral) (not .headless) -}}
-
 # --- Self-elevate ---
 if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()
   ).IsInRole([Security.Principal.WindowsBuiltInRole] 'Administrator')) {
@@ -144,5 +142,3 @@ while ($true) {
     }
     Start-Sleep -Milliseconds 100
 }
-
-{{- end -}}
