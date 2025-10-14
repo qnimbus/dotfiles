@@ -43,8 +43,6 @@ sudo apt update && sudo apt install -y chezmoi
 
 ### 2. Initialize from this repo
 
-> 🧠 Use HTTPS if SSH isn’t configured yet; otherwise prefer SSH (via 1Password agent).
-
 ```bash
 chezmoi -S "$HOME/.dotfiles" init --apply qnimbus
 ```
