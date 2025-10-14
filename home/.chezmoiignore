@@ -7,5 +7,5 @@ Documents/*
 
 {{- if eq .chezmoi.os "windows" }}
 dot_bash
-*/**/*.sh
+*.sh
 {{- end }}
