@@ -1,8 +1,4 @@
-{{- if eq .chezmoi.os "windows" }}
 sourceDir: "{{ .chezmoi.homeDir }}/.dotfiles"
-{{- else }}
-sourceDir: "{{ .chezmoi.homeDir }}/.dotfiles"
-{{- end }}
 
 git:
   autopush: true
@@ -11,6 +7,3 @@ git:
 edit:
   command: code
   args: ["--wait","--reuse-window"]
-
-# Example: default pager off in CI, etc.
-# pager: ""
