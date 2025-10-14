@@ -1,4 +1,4 @@
-{{ if and (eq .osid "windows") (not $ephemeral) (not $headless) -}}
+{{ if and (eq .osid "windows") (not .ephemeral) (not .headless) -}}
 #!/usr/bin/env powershell
 
 # Install 1Password CLI using winget (idempotent)
