@@ -129,7 +129,7 @@ Remove-ProvisionedByDisplayName -DisplayNamePattern $Junk
 
 # Wait 10 seconds of a keypress before closing
 Write-Host "Done. (Press any key to close, or wait 10 seconds...)"
-$timeout = 5
+$timeout = 10
 $start = Get-Date
 while ($true) {
     if ($host.UI.RawUI.KeyAvailable) {
