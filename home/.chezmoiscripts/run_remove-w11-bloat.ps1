@@ -1,14 +1,11 @@
-# To run this script:
-# 1. Run Windows PowerShell as Administrator
-# 2. Run `Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope Process`
-# 3. Run `chezmoi apply ~/.chezmoiscripts/windows/remove-bloat.ps1`
-#
-# FIXME automate running this script as Administrator
-
-# FIXME remove CoPilot
-# FIXME remove Spotify
-# FIXME remove LinkedIn
-# FIXME remove Windows 11 bottom left widget
+# Self-elevate the script if required
+if (-Not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] 'Administrator')) {
+  if ([int](Get-CimInstance -Class Win32_OperatingSystem | Select-Object -ExpandProperty BuildNumber) -ge 6000) {
+    $CommandLine = "-NoExit -File `"" + $MyInvocation.MyCommand.Path + "`" " + $MyInvocation.UnboundArguments
+    Start-Process -Wait -FilePath PowerShell.exe -Verb Runas -ArgumentList $CommandLine
+    Exit
+  }
+}
 
 Get-AppxPackage -AllUsers Clipchamp.Clipchamp | Remove-AppxPackage
 Get-AppxPackage -AllUsers Microsoft.549981C3F5F10 | Remove-AppxPackage
