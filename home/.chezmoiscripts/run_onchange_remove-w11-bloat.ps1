@@ -116,7 +116,6 @@ $apps = @(
 foreach ($name in $apps) { Remove-AppxByName -Name $name -AllUsers }
 
 # --- Pattern-based cleanup (case-insensitive) ---
-# Note: your original had '!3dviewer' which negated; assume you meant to include it.
 $Junk = '(?i)xbox|phone|disney|skype|spotify|groove|solitaire|zune|mixedreality|tiktok|adobe|prime|soundrecorder|bingweather|3dviewer'
 
 Write-Host "`nRemoving apps for this user only."
@@ -127,3 +126,6 @@ Remove-AppxMatching -Pattern $Junk -AllUsers
 
 Write-Host "`nRemoving provisioned apps."
 Remove-ProvisionedByDisplayName -DisplayNamePattern $Junk
+
+# Wait for keypress before closing (for testing)
+Read-Host -Prompt "Press Enter to exit"
