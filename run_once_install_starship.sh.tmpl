@@ -25,7 +25,7 @@ case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$P
 # Install Starship if missing
 if ! has starship; then
   # Install to ~/.local/bin (works without sudo)
-  curl -sS https://starship.rs/install.sh | sh -s -- -y -b "$HOME/.local/bin"
+  output=$(curl -sS https://starship.rs/install.sh | sh -s -- -y -b "$HOME/.local/bin" 2>&1)
 fi
 
 # Idempotently ensure ~/.local/bin is on PATH and starship is initialized for bash
