@@ -1,0 +1,3 @@
+{{ if and (eq .osid "linux-ubuntu") (not .ephemeral) (not .headless) -}}
+.bash/bashrc
+{{- end }}
