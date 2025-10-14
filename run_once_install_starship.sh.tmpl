@@ -18,10 +18,13 @@ ensure_line() {
 # Script #
 ##########
 
+# Ensure ~/.local/bin exists and is on PATH now and later
+mkdir -p "$HOME/.local/bin"
+case ":$PATH:" in *":$HOME/.local/bin:"*) ;; *) export PATH="$HOME/.local/bin:$PATH" ;; esac
+
 # Install Starship if missing
 if ! has starship; then
   # Install to ~/.local/bin (works without sudo)
-  mkdir -p "$HOME/.local/bin"
   curl -sS https://starship.rs/install.sh | sh -s -- -y -b "$HOME/.local/bin"
 fi
 
@@ -37,8 +40,10 @@ ensure_line 'export PATH="$HOME/.local/bin:$PATH"' "$BASHRC"
 # Enable starship for bash (idempotent)
 ensure_line 'eval "$(starship init bash)"' "$BASHRC"
 
-# Sanity check
-if ! has starship; then
+# Final sanity check (absolute path + PATH form)
+if [ -x "$HOME/.local/bin/starship" ] || command -v starship >/dev/null 2>&1; then
+  echo "Starship installed."
+else
   echo "ERROR: Starship installation failed." >&2
   exit 1
 fi
