@@ -110,7 +110,7 @@ chezmoi apply           # apply updates
 * On Unix/macOS, you can bootstrap with a single line:
 
   ```bash
-  sh -c "$(curl -fsLS get.chezmoi.io/lb)" -- init --apply qnimbus
+  sh -c "$(curl -fsLS get.chezmoi.io/lb)" -- -S "$HOME/.dotfiles" init --apply qnimbus
   ```
 
 ---
