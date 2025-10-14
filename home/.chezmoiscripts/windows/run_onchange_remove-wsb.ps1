@@ -15,6 +15,7 @@ New-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search" -Nam
 # Wait 5 seconds of a keypress before closing
 Write-Host ""
 Write-Host "Done. (Press any key to close, or wait 5 seconds...)"
+Write-Host ""
 $timeout = 5
 $start = Get-Date
 while ($true) {
