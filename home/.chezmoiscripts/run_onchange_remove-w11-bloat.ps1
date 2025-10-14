@@ -128,7 +128,8 @@ Write-Host "`nRemoving provisioned apps."
 Remove-ProvisionedByDisplayName -DisplayNamePattern $Junk
 
 # Wait 10 seconds of a keypress before closing
-Write-Host "\n\nDone. (Press any key to close, or wait 10 seconds...)"
+Write-Host ""
+Write-Host "Done. (Press any key to close, or wait 10 seconds...)"
 $timeout = 10
 $start = Get-Date
 while ($true) {
