@@ -2,40 +2,46 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+#############
+# Functions #
+#############
+
 has() { command -v "$1" >/dev/null 2>&1; }
 
-if has starship; then
-  echo "Starship already installed."
-  exit 0
+# helper: append line to file only if exact line not present
+ensure_line() {
+  local line="$1" file="$2"
+  grep -qxF "$line" "$file" 2>/dev/null || printf '%s\n' "$line" >> "$file"
+}
+
+##########
+# Script #
+##########
+
+# Install Starship if missing
+if ! has starship; then
+  # Install to ~/.local/bin (works without sudo)
+  mkdir -p "$HOME/.local/bin"
+  curl -sS https://starship.rs/install.sh | sh -s -- -y -b "$HOME/.local/bin"
 fi
 
-if has apt-get; then
-  echo "Installing starship via apt…"
-  if [ "$(id -u)" -ne 0 ] && has sudo; then
-    sudo apt-get update -y && sudo apt-get install -y starship || true
-  else
-    apt-get update -y && apt-get install -y starship || true
-  fi
-  if has starship; then
-    echo "Starship installed via apt."
-    exit 0
-  fi
-fi
+# Idempotently ensure ~/.local/bin is on PATH and starship is initialized for bash
+BASHRC="$HOME/.bashrc"
 
-echo "Installing starship via official script to ~/.local/bin…"
-mkdir -p "$HOME/.local/bin"
-curl -fsSL https://starship.rs/install.sh | sh -s -- -y -b "$HOME/.local/bin"
+# Create file if missing
+[ -f "$BASHRC" ] || touch "$BASHRC"
 
-# Ensure ~/.local/bin is on PATH for future shells (typical on Ubuntu; just in case)
-case ":$PATH:" in
-  *":$HOME/.local/bin:"*) ;;
-  *) echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.profile" ;;
-esac
+# Put ~/.local/bin on PATH for future bash shells (before starship init)
+ensure_line 'export PATH="$HOME/.local/bin:$PATH"' "$BASHRC"
 
-if has starship; then
-  echo "Starship installed via official script."
-else
+# Enable starship for bash (idempotent)
+ensure_line 'eval "$(starship init bash)"' "$BASHRC"
+
+# Sanity check
+if ! has starship; then
   echo "ERROR: Starship installation failed." >&2
   exit 1
 fi
+
+echo "Starship installed and enabled for bash (idempotent). Open a new shell to see it."
 {{- end -}}

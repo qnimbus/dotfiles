@@ -41,13 +41,13 @@ sudo dnf install -y chezmoi
 **SSH**
 
 ```bash
-chezmoi init --apply git@github.com:qnimbus/dotfiles.git
+chezmoi -S "$HOME/.dotfiles" init --apply qnimbus
 ```
 
 **HTTPS**
 
 ```bash
-chezmoi init --apply https://github.com/qnimbus/dotfiles.git
+chezmoi -S "$HOME/.dotfiles" init --apply qnimbus
 ```
 
 This clones the repo into `~/.local/share/chezmoi`, renders all templates,
