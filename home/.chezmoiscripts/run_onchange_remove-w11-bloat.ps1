@@ -128,7 +128,15 @@ Write-Host "`nRemoving provisioned apps."
 Remove-ProvisionedByDisplayName -DisplayNamePattern $Junk
 
 # Wait 10 seconds of a keypress before closing
-Start-Sleep -Seconds 10
-Write-Host "Done. (This window will close in 10 seconds.)"
-Write-Host "Press any key to close now..."
-$x = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+Write-Host "Done. (Press any key to close, or wait 10 seconds...)"
+$timeout = 10
+$start = Get-Date
+$host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+if ($host.UI.RawUI.KeyAvailable) {
+    $null = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    break
+}
+if ((Get-Date) - $start -gt (New-TimeSpan -Seconds $timeout)) {
+    break
+}
+Start-Sleep -Milliseconds 100
