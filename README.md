@@ -1,7 +1,20 @@
-# 🧩 Dotfiles (managed with ~ chezmoi ~)
+# 🧩 github.com/qnimbus/dotfiles
 
-These are my personal configuration files, managed with [chezmoi](https://www.chezmoi.io/).  
-They include PowerShell, Git, and other cross-platform settings, templated for Windows, macOS, and Linux.
+Bas' dotfiles, managed with [`chezmoi`](https://github.com/twpayne/chezmoi).
+
+Install them with:
+
+```console
+$ sh -c "$(curl -fsLS get.chezmoi.io/lb)" -- init -S "$HOME/.dotfiles" --apply qnimbus
+```
+
+Personal secrets are stored in [1Password](https://1password.com) and you'll
+need the [1Password CLI](https://developer.1password.com/docs/cli/) installed.
+Login to 1Password with:
+
+```console
+$ eval $(op signin)
+```
 
 ---
 
@@ -36,7 +49,7 @@ sudo apt update && sudo apt install -y chezmoi
 chezmoi -S "$HOME/.dotfiles" init --apply qnimbus
 ```
 
-This clones the repo into `~/.local/share/chezmoi`, renders all templates,
+This clones the repo into `~/.dotfiles`, renders all templates,
 and writes the resulting files into your home directory.
 
 ---
