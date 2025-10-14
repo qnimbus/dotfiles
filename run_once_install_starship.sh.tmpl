@@ -34,6 +34,12 @@ BASHRC="$HOME/.bashrc"
 # Create file if missing
 [ -f "$BASHRC" ] || touch "$BASHRC"
 
+# Create a separate section in .bashrc
+
+ensure_line "\n" "$BASHRC"
+ensure_line "### chezmoi edit ###" "$BASHRC"
+ensure_line "\n" "$BASHRC"
+
 # Put ~/.local/bin on PATH for future bash shells (before starship init)
 ensure_line 'export PATH="$HOME/.local/bin:$PATH"' "$BASHRC"
 
