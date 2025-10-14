@@ -33,7 +33,6 @@ Get-AppxPackage -AllUsers Microsoft.WindowsCommunicationsApps | Remove-AppxPacka
 Get-AppxPackage -AllUsers Microsoft.WindowsFeedbackHub | Remove-AppPackage
 Get-AppxPackage -AllUsers Microsoft.WindowsMaps | Remove-AppxPackage
 Get-AppxPackage -AllUsers Microsoft.WindowsSoundRecorder | Remove-AppxPackage
-Get-AppxPackage -AllUsers Microsoft.YourPhone | Remove-AppxPackage
 Get-AppxPackage -AllUsers Microsoft.ZuneMusic | Remove-AppxPackage
 Get-AppxPackage -AllUsers Microsoft.ZuneVideo | Remove-AppxPackage
 
