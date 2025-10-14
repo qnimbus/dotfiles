@@ -7,7 +7,7 @@ if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
 }
 
 # Tidy output (optional)
-$ProgressPreference = 'SilentlyContinue'
+# $ProgressPreference = 'SilentlyContinue'
 
 New-Item "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search" -Force
 New-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search" -Name "EnableDynamicContentInWSB" -PropertyType DWORD -Value 0

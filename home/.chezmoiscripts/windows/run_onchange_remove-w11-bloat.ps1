@@ -127,10 +127,10 @@ Remove-AppxMatching -Pattern $Junk -AllUsers
 Write-Host "`nRemoving provisioned apps."
 Remove-ProvisionedByDisplayName -DisplayNamePattern $Junk
 
-# Wait 10 seconds of a keypress before closing
+# Wait 5 seconds of a keypress before closing
 Write-Host ""
-Write-Host "Done. (Press any key to close, or wait 10 seconds...)"
-$timeout = 10
+Write-Host "Done. (Press any key to close, or wait 5 seconds...)"
+$timeout = 5
 $start = Get-Date
 while ($true) {
     if ($host.UI.RawUI.KeyAvailable) {
