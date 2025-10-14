@@ -1,3 +1,14 @@
+{{/* detect GitHub codespaces, VSCode remote containers, Docker containers, Multipass VMs, and Vagrant boxes */}}
+{{- if or (env "CODESPACES") (env "REMOTE_CONTAINERS_IPC") (eq .chezmoi.username "root" "ubuntu" "vagrant" "vscode") -}}
+{{-   $ephemeral = true -}}
+{{-   $headless = true -}}
+{{- end -}}
+
+{{- $osID := .chezmoi.os -}}
+{{- if (and (eq .chezmoi.os "linux") (hasKey .chezmoi.osRelease "id")) -}}
+{{-   $osID = printf "%s-%s" .chezmoi.os .chezmoi.osRelease.id -}}
+{{- end -}}
+
 sourceDir: "{{ .chezmoi.homeDir }}/.dotfiles"
 
 git:
@@ -7,3 +18,9 @@ git:
 edit:
   command: code
   args: ["--wait","--reuse-window"]
+
+data:
+  ephemeral = {{ $ephemeral }}
+  headless = {{ $headless }}
+  hostname = {{ $hostname | quote }}
+  osid = {{ $osID | quote }}
