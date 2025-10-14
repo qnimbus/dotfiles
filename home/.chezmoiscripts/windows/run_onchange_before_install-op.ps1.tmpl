@@ -1,4 +1,5 @@
 {{ if and (eq .osid "windows") (not .ephemeral) (not .headless) -}}
+
 # Install 1Password CLI using winget (idempotent)
 
 # Configuration
@@ -65,4 +66,5 @@ if (-not $opInstalled) {
 }
 
 Write-Host "1Password CLI setup completed." -ForegroundColor Blue
+
 {{- end -}}
