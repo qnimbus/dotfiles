@@ -14,6 +14,20 @@ set -euo pipefail  # Exit on error, undefined vars, pipe failures
 # Default values
 VERBOSE=false
 
+
+{{ if .wsl -}}
+
+# VS Code Extensions to install
+EXTENSIONS=(
+    "EditorConfig.EditorConfig"
+    "github.copilot"
+    "github.copilot-chat"
+    "esbenp.prettier-vscode"
+    "ms-vscode.vscode-typescript-next"
+)
+
+{{- else }}
+
 # VS Code Extensions to install
 EXTENSIONS=(
     "EditorConfig.EditorConfig"
@@ -23,6 +37,8 @@ EXTENSIONS=(
     "ms-vscode.vscode-typescript-next"
     "ms-vscode-remote.vscode-remote-extensionpack"
 )
+
+{{- end }}
 
 # Function to display usage
 usage() {
