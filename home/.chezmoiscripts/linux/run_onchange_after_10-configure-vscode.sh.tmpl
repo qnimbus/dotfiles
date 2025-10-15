@@ -12,7 +12,6 @@
 set -euo pipefail  # Exit on error, undefined vars, pipe failures
 
 # Default values
-FORCE=false
 VERBOSE=false
 
 # VS Code Extensions to install
@@ -33,16 +32,15 @@ Usage: $0 [OPTIONS]
 Description:
     Installs a predefined list of Visual Studio Code extensions using the 'code' command line tool.
     The script includes error handling and logging for each extension installation.
+    Extensions are installed with --force flag to ensure they are updated to the latest version.
 
 Options:
-    -f, --force         Force installation of extensions even if they are already installed
     -v, --verbose       Enable verbose output
     -h, --help          Display this help message
 
 Examples:
     $0
-    $0 --force
-    $0 -v --force
+    $0 -v
 
 Notes:
     Requires: Visual Studio Code CLI (code command) must be available in PATH
@@ -97,10 +95,7 @@ install_vscode_extension() {
 
     log INFO "Installing extension: $extension_id"
 
-    local args=("--install-extension" "$extension_id")
-    if [[ "$FORCE" == "true" ]]; then
-        args+=("--force")
-    fi
+    local args=("--install-extension" "$extension_id" "--force")
 
     if code "${args[@]}" 2>&1; then
         log SUCCESS "Successfully installed extension: $extension_id"
@@ -161,10 +156,6 @@ cleanup() {
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
-        -f|--force)
-            FORCE=true
-            shift
-            ;;
         -v|--verbose)
             VERBOSE=true
             shift
