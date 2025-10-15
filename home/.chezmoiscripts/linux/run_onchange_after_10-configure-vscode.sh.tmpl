@@ -7,7 +7,7 @@
 # OS: {{ .chezmoi.os }}/{{ .chezmoi.arch }}
 # Version: 1.0
 
-{{ if and (eq .osid "linux-ubuntu") (not .ephemeral) (not .headless) (not .wsl) -}}
+{{ if and (eq .osid "linux-ubuntu") (not .ephemeral) (not .headless) -}}
 
 set -euo pipefail  # Exit on error, undefined vars, pipe failures
 
@@ -185,4 +185,4 @@ trap cleanup EXIT
 # Execute main function
 main "$@"
 
-{{ end -}}
+{{- end -}}
