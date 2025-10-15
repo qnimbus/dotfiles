@@ -12,7 +12,6 @@
     Author: {{ .chezmoi.username }}
     Machine: {{ .chezmoi.hostname }}
     OS: {{ .chezmoi.os }}/{{ .chezmoi.arch }}
-    Date: {{ now }}
     Version: 1.0
 #>
 
@@ -114,7 +113,7 @@ finally {
     Write-Log "========================================" -Level Info
     Write-Log "EXITING: Windows Search Box Configuration" -Level Info
     Write-Log "========================================" -Level Info
-    
+
     # Wait for user input or timeout
     Write-Host ""
     Write-Host "Press any key to close, or wait 5 seconds..." -ForegroundColor Cyan
