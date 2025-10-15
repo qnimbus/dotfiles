@@ -2,7 +2,15 @@
 {{- $ephemeral := false -}}{{/* true if this machine is ephemeral, e.g. a cloud or VM instance */}}
 {{- $headless := false -}}{{/* true if this machine does not have a screen and keyboard */}}
 {{- $hostname := .chezmoi.hostname -}}
+{{- $isWSL := false -}}{{/* Detect WSL2 using /proc/version and /proc/sys/fs/binfmt_misc/WSLInterop */}}
 {{- "" -}}
+
+{{- /* Detect WSL2 using /proc/version and /proc/sys/fs/binfmt_misc/WSLInterop */ -}}
+{{- if and (eq .chezmoi.os "linux") (exec "grep" "-qi" "microsoft" "/proc/version") -}}
+  {{- if (exec "test" "-f" "/proc/sys/fs/binfmt_misc/WSLInterop") -}}
+    {{- $isWSL = true -}}
+  {{- end -}}
+{{- end -}}
 
 {{/* detect GitHub codespaces, VSCode remote containers, Docker containers, Multipass VMs, and Vagrant boxes */}}
 {{- if or (env "CODESPACES") (env "REMOTE_CONTAINERS_IPC") (eq .chezmoi.username "root" "ubuntu" "vagrant" "vscode") -}}
@@ -30,3 +38,4 @@ data:
   headless: {{ $headless }}
   hostname: {{ $hostname | quote }}
   osid: {{ $osID | quote }}
+  wsl: {{ $isWSL }}
