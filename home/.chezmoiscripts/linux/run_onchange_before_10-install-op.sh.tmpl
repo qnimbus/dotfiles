@@ -1,20 +1,204 @@
+#!/bin/bash
+
+# Script: run_onchange_before_10-install-op.sh
+# Description: Install 1Password CLI on Linux Ubuntu systems
+# Author: {{ .chezmoi.username }}
+# Machine: {{ .chezmoi.hostname }}
+# OS: {{ .chezmoi.os }}/{{ .chezmoi.arch }}
+# Version: 1.0
+
 {{ if and (eq .osid "linux-ubuntu") (not .ephemeral) (not .headless) -}}
 
-#!/bin/sh
+set -euo pipefail  # Exit on error, undefined vars, pipe failures
 
-curl -sS https://downloads.1password.com/linux/keys/1password.asc | \
-	sudo gpg --dearmor --output /usr/share/keyrings/1password-archive-keyring.gpg
+# Default values
+VERBOSE=false
 
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/1password-archive-keyring.gpg] https://downloads.1password.com/linux/debian/$(dpkg --print-architecture) stable main" |
-	sudo tee /etc/apt/sources.list.d/1password.list
+# Function to display usage
+usage() {
+    cat << EOF
+Usage: $0 [OPTIONS]
 
-sudo mkdir -p /etc/debsig/policies/AC2D62742012EA22/
-curl -sS https://downloads.1password.com/linux/debian/debsig/1password.pol | \
-	sudo tee /etc/debsig/policies/AC2D62742012EA22/1password.pol
-sudo mkdir -p /usr/share/debsig/keyrings/AC2D62742012EA22
-curl -sS https://downloads.1password.com/linux/keys/1password.asc | \
-	sudo gpg --dearmor --output /usr/share/debsig/keyrings/AC2D62742012EA22/debsig.gpg
+Description:
+    Install 1Password CLI on Linux Ubuntu systems.
+    This script adds the 1Password repository and installs the CLI tool.
 
-sudo apt update && sudo apt install -y 1password-cli
+Options:
+    -v, --verbose        Enable verbose output
+    -h, --help          Display this help message
+
+Examples:
+    $0
+    $0 --verbose
+EOF
+}
+
+# Logging function
+log() {
+    local level="$1"
+    shift
+    local message="$*"
+    local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
+
+    case "$level" in
+        INFO)
+            echo "[$timestamp] [INFO] $message"
+            ;;
+        WARN)
+            echo "[$timestamp] [WARN] $message" >&2
+            ;;
+        ERROR)
+            echo "[$timestamp] [ERROR] $message" >&2
+            ;;
+        SUCCESS)
+            echo "[$timestamp] [SUCCESS] $message"
+            ;;
+        DEBUG)
+            if [[ "$VERBOSE" == "true" ]]; then
+                echo "[$timestamp] [DEBUG] $message"
+            fi
+            ;;
+    esac
+}
+
+# Function to check prerequisites
+check_prerequisites() {
+    log INFO "Checking prerequisites..."
+
+    # Check if running on Ubuntu
+    if [[ ! -f /etc/os-release ]] || ! grep -q "ubuntu" /etc/os-release; then
+        log ERROR "This script is designed for Ubuntu Linux systems"
+        exit 1
+    fi
+
+    # Check if required commands exist
+    for cmd in curl sudo apt gpg; do
+        if ! command -v "$cmd" &> /dev/null; then
+            log ERROR "Required command '$cmd' not found"
+            exit 1
+        fi
+    done
+
+    # Check if 1Password CLI is already installed
+    if command -v op &> /dev/null; then
+        log INFO "1Password CLI is already installed: $(op --version)"
+        log SUCCESS "Prerequisites check completed"
+        return 1  # Signal that installation can be skipped
+    fi
+
+    log SUCCESS "Prerequisites check completed"
+    return 0
+}
+
+# Function to install 1Password CLI
+install_1password_cli() {
+    log INFO "Adding 1Password GPG key..."
+    if ! curl -sS https://downloads.1password.com/linux/keys/1password.asc | \
+        sudo gpg --dearmor --output /usr/share/keyrings/1password-archive-keyring.gpg; then
+        log ERROR "Failed to add 1Password GPG key"
+        return 1
+    fi
+
+    log INFO "Adding 1Password repository..."
+    if ! echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/1password-archive-keyring.gpg] https://downloads.1password.com/linux/debian/$(dpkg --print-architecture) stable main" | \
+        sudo tee /etc/apt/sources.list.d/1password.list > /dev/null; then
+        log ERROR "Failed to add 1Password repository"
+        return 1
+    fi
+
+    log INFO "Setting up debsig policies..."
+    sudo mkdir -p /etc/debsig/policies/AC2D62742012EA22/
+    if ! curl -sS https://downloads.1password.com/linux/debian/debsig/1password.pol | \
+        sudo tee /etc/debsig/policies/AC2D62742012EA22/1password.pol > /dev/null; then
+        log ERROR "Failed to setup debsig policies"
+        return 1
+    fi
+
+    sudo mkdir -p /usr/share/debsig/keyrings/AC2D62742012EA22
+    if ! curl -sS https://downloads.1password.com/linux/keys/1password.asc | \
+        sudo gpg --dearmor --output /usr/share/debsig/keyrings/AC2D62742012EA22/debsig.gpg; then
+        log ERROR "Failed to setup debsig keyrings"
+        return 1
+    fi
+
+    log INFO "Updating package list and installing 1Password CLI..."
+    if ! sudo apt update && sudo apt install -y 1password-cli; then
+        log ERROR "Failed to install 1Password CLI"
+        return 1
+    fi
+
+    log SUCCESS "1Password CLI installed successfully"
+    return 0
+}
+
+# Main function
+main() {
+    local script_name=$(basename "$0")
+
+    log INFO "========================================"
+    log INFO "STARTING: $script_name"
+    log INFO "========================================"
+
+    # Check prerequisites
+    if ! check_prerequisites; then
+        log INFO "1Password CLI is already installed, skipping installation"
+        log SUCCESS "========================================"
+        log SUCCESS "COMPLETED: $script_name"
+        log SUCCESS "========================================"
+        return 0
+    fi
+
+    # Install 1Password CLI
+    if ! install_1password_cli; then
+        log ERROR "1Password CLI installation failed"
+        exit 1
+    fi
+
+    # Verify installation
+    if command -v op &> /dev/null; then
+        log SUCCESS "1Password CLI version: $(op --version)"
+    else
+        log ERROR "1Password CLI installation verification failed"
+        exit 1
+    fi
+
+    log SUCCESS "========================================"
+    log SUCCESS "COMPLETED: $script_name"
+    log SUCCESS "========================================"
+}
+
+# Cleanup function
+cleanup() {
+    local script_name=$(basename "$0")
+    log INFO "Cleanup completed"
+    log INFO "========================================"
+    log INFO "EXITING: $script_name"
+    log INFO "========================================"
+}
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -v|--verbose)
+            VERBOSE=true
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            log ERROR "Unknown option: $1"
+            usage
+            exit 1
+            ;;
+    esac
+done
+
+# Set up trap for cleanup on exit
+trap cleanup EXIT
+
+# Execute main function
+main "$@"
 
 {{ end -}}

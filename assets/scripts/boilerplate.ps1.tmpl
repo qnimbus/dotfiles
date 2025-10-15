@@ -38,12 +38,12 @@ function Write-Log {
     param(
         [Parameter(Mandatory = $true)]
         [string]$Message,
-        
+
         [Parameter(Mandatory = $false)]
         [ValidateSet("Info", "Warning", "Error", "Success")]
         [string]$Level = "Info"
     )
-    
+
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     $color = switch ($Level) {
         "Info"    { "White" }
@@ -51,23 +51,23 @@ function Write-Log {
         "Error"   { "Red" }
         "Success" { "Green" }
     }
-    
+
     Write-Host "[$timestamp] [$Level] $Message" -ForegroundColor $color
 }
 
 function Test-Prerequisites {
     [CmdletBinding()]
     param()
-    
+
     Write-Log "Checking prerequisites..." -Level Info
-    
+
     # Add your prerequisite checks here
     # Example: Check if running as administrator
     if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
         Write-Log "This script requires administrator privileges." -Level Warning
         throw "Administrator privileges required."
     }
-    
+
     Write-Log "Prerequisites check completed." -Level Success
 }
 
@@ -76,17 +76,17 @@ try {
     Write-Log "========================================" -Level Info
     Write-Log "STARTING: $($MyInvocation.MyCommand.Name)" -Level Info
     Write-Log "========================================" -Level Info
-    
+
     # Check prerequisites
     Test-Prerequisites
-    
+
     # Main script logic goes here
     Write-Log "Processing with parameter: $ExampleParam" -Level Info
-    
+
     if ($PSCmdlet.ShouldProcess("Target", "Action")) {
         # Your main script logic here
         Write-Log "Executing main logic..." -Level Info
-        
+
         # Example of error handling within the script
         try {
             # Some operation that might fail
@@ -97,7 +97,7 @@ try {
             throw
         }
     }
-    
+
     Write-Log "========================================" -Level Success
     Write-Log "COMPLETED: $($MyInvocation.MyCommand.Name)" -Level Success
     Write-Log "========================================" -Level Success
