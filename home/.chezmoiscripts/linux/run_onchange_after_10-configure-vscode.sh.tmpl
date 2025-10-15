@@ -147,7 +147,9 @@ main() {
     log SUCCESS "========================================"
     log SUCCESS "COMPLETED: $script_name"
     log SUCCESS "========================================"
-}# Cleanup function
+}
+
+# Cleanup function
 cleanup() {
     local script_name=$(basename "$0")
     log INFO "Cleanup completed"
@@ -185,4 +187,4 @@ trap cleanup EXIT
 # Execute main function
 main "$@"
 
-{{- end -}}
+{{- end }}
