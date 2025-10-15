@@ -1,0 +1,175 @@
+#Requires -Version 5.1
+
+<#
+.SYNOPSIS
+    Installs 1Password CLI using winget (idempotent installation).
+
+.DESCRIPTION
+    This script checks if 1Password CLI is already installed and installs it via winget if not found.
+    The installation is idempotent and will skip if already installed.
+
+.EXAMPLE
+    .\run_onchange_before_10-install-op.ps1
+    Installs 1Password CLI if not already present.
+
+.NOTES
+    Author: {{ .chezmoi.username }}
+    Machine: {{ .chezmoi.hostname }}
+    OS: {{ .chezmoi.os }}/{{ .chezmoi.arch }}
+    Date: {{ now }}
+    Version: 1.0
+    Requires: Windows with winget available
+#>
+
+{{ if and (eq .osid "windows") (not .ephemeral) (not .headless) -}}
+
+[CmdletBinding(SupportsShouldProcess)]
+param()
+
+# Configuration
+$packageId = "AgileBits.1Password.CLI"
+
+# Script-level error handling
+$ErrorActionPreference = "Stop"
+$VerbosePreference = if ($PSBoundParameters.ContainsKey('Verbose')) { "Continue" } else { "SilentlyContinue" }
+
+# Functions
+function Write-Log {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Message,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateSet("Info", "Warning", "Error", "Success")]
+        [string]$Level = "Info"
+    )
+
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $color = switch ($Level) {
+        "Info"    { "White" }
+        "Warning" { "Yellow" }
+        "Error"   { "Red" }
+        "Success" { "Green" }
+    }
+
+    Write-Host "[$timestamp] [$Level] $Message" -ForegroundColor $color
+}
+
+function Test-Prerequisites {
+    [CmdletBinding()]
+    param()
+
+    Write-Log "Checking prerequisites..." -Level Info
+
+    # Check if winget is available
+    try {
+        $wingetVersion = & winget --version 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            throw "winget not available"
+        }
+        Write-Log "Using winget version: $wingetVersion" -Level Info
+    } catch {
+        Write-Log "winget is not available. Please install winget or the Microsoft Store version of App Installer." -Level Error
+        throw "winget prerequisite not met"
+    }
+
+    Write-Log "Prerequisites check completed." -Level Success
+}
+
+function Test-1PasswordCLI {
+    [CmdletBinding()]
+    param()
+
+    Write-Log "Checking for existing 1Password CLI installation..." -Level Info
+
+    try {
+        $opVersion = & op --version 2>$null
+        if ($LASTEXITCODE -eq 0) {
+            Write-Log "1Password CLI is already installed (version: $opVersion)" -Level Success
+            return $true
+        }
+    } catch {
+        # Command not found or failed
+    }
+
+    Write-Log "1Password CLI not found." -Level Info
+    return $false
+}
+
+function Install-1PasswordCLI {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$PackageId
+    )
+
+    Write-Log "Installing 1Password CLI via winget..." -Level Info
+
+    try {
+        & winget install --id $PackageId --exact --silent --accept-source-agreements --accept-package-agreements
+
+        if ($LASTEXITCODE -eq 0) {
+            Write-Log "1Password CLI installed successfully!" -Level Success
+
+            # Verify installation
+            try {
+                $opVersion = & op --version 2>$null
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Log "Installation verified. 1Password CLI version: $opVersion" -Level Success
+                } else {
+                    Write-Log "Installation completed but 'op' command not immediately available. You may need to restart your shell." -Level Warning
+                }
+            } catch {
+                Write-Log "Installation completed but 'op' command not immediately available. You may need to restart your shell." -Level Warning
+            }
+        } else {
+            throw "winget install failed with exit code: $LASTEXITCODE"
+        }
+    } catch {
+        Write-Log "Error installing 1Password CLI: $($_.Exception.Message)" -Level Error
+        throw
+    }
+}
+
+# Main execution block
+try {
+    Write-Log "========================================" -Level Info
+    Write-Log "STARTING: $($MyInvocation.MyCommand.Name)" -Level Info
+    Write-Log "========================================" -Level Info
+
+    Write-Log "Starting 1Password CLI installation script..." -Level Info
+
+    # Check prerequisites
+    Test-Prerequisites
+
+    # Check if 1Password CLI is already installed
+    if (Test-1PasswordCLI) {
+        Write-Log "1Password CLI installation is up to date." -Level Success
+    } else {
+        if ($PSCmdlet.ShouldProcess("1Password CLI", "Install")) {
+            Install-1PasswordCLI -PackageId $packageId
+        }
+    }
+
+    Write-Log "1Password CLI setup completed." -Level Success
+
+    Write-Log "========================================" -Level Success
+    Write-Log "COMPLETED: $($MyInvocation.MyCommand.Name)" -Level Success
+    Write-Log "========================================" -Level Success
+
+}
+catch {
+    Write-Log "Script failed: $($_.Exception.Message)" -Level Error
+    Write-Log "Stack trace: $($_.ScriptStackTrace)" -Level Error
+    exit 1
+}
+finally {
+    # Cleanup code goes here
+    Write-Log "Cleanup completed." -Level Info
+    Write-Log "========================================" -Level Info
+    Write-Log "EXITING: $($MyInvocation.MyCommand.Name)" -Level Info
+    Write-Log "========================================" -Level Info
+}
+
+{{- end -}}

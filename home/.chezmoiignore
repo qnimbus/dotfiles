@@ -1,21 +1,17 @@
 README.md
 
-{{- if ne .chezmoi.os "windows" }}
-AppData
-Documents
-Documents/*
-{{- end }}
-
-{{- if eq .chezmoi.os "windows" }}
-.bash
+{{ if ne .chezmoi.os "linux" }}
 *.sh
 **/*/*.sh
-{{- end }}
 
-{{ if ne .chezmoi.os "linux" }}
+.bash
 .chezmoiscripts/linux/**
 {{- end }}
 
 {{ if ne .chezmoi.os "windows" }}
+AppData
+Documents
+Documents/*
+
 .chezmoiscripts/windows/**
 {{- end }}

@@ -1,0 +1,179 @@
+#Requires -Version 5.1
+
+<#
+.SYNOPSIS
+    Installs Visual Studio Code extensions.
+
+.DESCRIPTION
+    This script installs a predefined list of Visual Studio Code extensions using the 'code' command line tool.
+    The script includes error handling and logging for each extension installation.
+
+.PARAMETER Force
+    Forces installation of extensions even if they are already installed.
+
+.EXAMPLE
+    .\run_after_configure-vscode.ps1
+    Installs all configured VS Code extensions.
+
+.EXAMPLE
+    .\run_after_configure-vscode.ps1 -Force
+    Forces installation of all configured VS Code extensions.
+
+.NOTES
+    Author: {{ .chezmoi.username }}
+    Machine: {{ .chezmoi.hostname }}
+    OS: {{ .chezmoi.os }}/{{ .chezmoi.arch }}
+    Date: {{ now }}
+    Version: 1.0
+    Requires: Visual Studio Code CLI (code command) must be available in PATH
+#>
+
+[CmdletBinding(SupportsShouldProcess)]
+param(
+    [Parameter(Mandatory = $false)]
+    [switch]$Force
+)
+
+# Script-level error handling
+$ErrorActionPreference = "Stop"
+$VerbosePreference = if ($PSBoundParameters.ContainsKey('Verbose')) { "Continue" } else { "SilentlyContinue" }
+
+# VS Code Extensions to install
+$Extensions = @(
+    "EditorConfig.EditorConfig",
+    "github.copilot",
+    "github.copilot-chat",
+    "esbenp.prettier-vscode",
+    "ms-vscode.vscode-typescript-next",
+    "ms-vscode-remote.vscode-remote-extensionpack"
+)
+
+# Functions
+function Write-Log {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Message,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateSet("Info", "Warning", "Error", "Success")]
+        [string]$Level = "Info"
+    )
+
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $color = switch ($Level) {
+        "Info"    { "White" }
+        "Warning" { "Yellow" }
+        "Error"   { "Red" }
+        "Success" { "Green" }
+    }
+
+    Write-Host "[$timestamp] [$Level] $Message" -ForegroundColor $color
+}
+
+function Test-Prerequisites {
+    [CmdletBinding()]
+    param()
+
+    Write-Log "Checking prerequisites..." -Level Info
+
+    # Check if VS Code CLI is available
+    try {
+        $null = Get-Command "code" -ErrorAction Stop
+        Write-Log "Visual Studio Code CLI found." -Level Success
+    }
+    catch {
+        Write-Log "Visual Studio Code CLI not found in PATH. Please ensure VS Code is installed and 'code' command is available." -Level Error
+        throw "VS Code CLI not found"
+    }
+
+    Write-Log "Prerequisites check completed." -Level Success
+}
+
+function Install-VSCodeExtension {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ExtensionId,
+
+        [Parameter(Mandatory = $false)]
+        [switch]$Force
+    )
+
+    try {
+        Write-Log "Installing extension: $ExtensionId" -Level Info
+
+        $arguments = @("--install-extension", $ExtensionId)
+        if ($Force) {
+            $arguments += "--force"
+        }
+
+        $result = & code $arguments 2>&1
+
+        if ($LASTEXITCODE -eq 0) {
+            Write-Log "Successfully installed extension: $ExtensionId" -Level Success
+        }
+        else {
+            Write-Log "Failed to install extension: $ExtensionId. Output: $result" -Level Warning
+        }
+    }
+    catch {
+        Write-Log "Error installing extension ${ExtensionId}: $($_.Exception.Message)" -Level Error
+        throw
+    }
+}
+
+# Main execution block
+try {
+    Write-Log "========================================" -Level Info
+    Write-Log "STARTING: $($MyInvocation.MyCommand.Name)" -Level Info
+    Write-Log "========================================" -Level Info
+
+    Write-Log "Starting VS Code extension installation..." -Level Info
+
+    # Check prerequisites
+    Test-Prerequisites
+
+    # Install extensions
+    Write-Log "Installing $($Extensions.Count) VS Code extensions..." -Level Info
+
+    $successCount = 0
+    $failureCount = 0
+
+    foreach ($extension in $Extensions) {
+        if ($PSCmdlet.ShouldProcess($extension, "Install VS Code Extension")) {
+            try {
+                Install-VSCodeExtension -ExtensionId $extension -Force:$Force
+                $successCount++
+            }
+            catch {
+                Write-Log "Failed to install extension: $extension" -Level Error
+                $failureCount++
+                # Continue with other extensions instead of stopping
+                continue
+            }
+        }
+    }
+
+    Write-Log "Extension installation completed. Success: $successCount, Failures: $failureCount" -Level Success
+
+    if ($failureCount -gt 0) {
+        Write-Log "$failureCount extensions failed to install. Check the logs above for details." -Level Warning
+    }
+
+    Write-Log "========================================" -Level Success
+    Write-Log "COMPLETED: $($MyInvocation.MyCommand.Name)" -Level Success
+    Write-Log "========================================" -Level Success
+}
+catch {
+    Write-Log "Script failed: $($_.Exception.Message)" -Level Error
+    Write-Log "Stack trace: $($_.ScriptStackTrace)" -Level Error
+    exit 1
+}
+finally {
+    # Cleanup code goes here
+    Write-Log "Cleanup completed." -Level Info
+    Write-Log "========================================" -Level Info
+    Write-Log "EXITING: $($MyInvocation.MyCommand.Name)" -Level Info
+    Write-Log "========================================" -Level Info
+}

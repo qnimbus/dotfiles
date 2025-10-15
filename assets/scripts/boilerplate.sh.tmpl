@@ -1,0 +1,152 @@
+#!/bin/bash
+
+# Script: boilerplate.sh
+# Description: Brief description of what this script does
+# Author: {{ .chezmoi.username }}
+# Machine: {{ .chezmoi.hostname }}
+# OS: {{ .chezmoi.os }}/{{ .chezmoi.arch }}
+# Date: {{ now }}
+# Version: 1.0
+
+set -euo pipefail  # Exit on error, undefined vars, pipe failures
+
+# Default values
+EXAMPLE_PARAM="DefaultValue"
+VERBOSE=false
+
+# Function to display usage
+usage() {
+    cat << EOF
+Usage: $0 [OPTIONS]
+
+Description:
+    Detailed description of the script's functionality.
+
+Options:
+    -p, --param VALUE    Example parameter (default: $EXAMPLE_PARAM)
+    -v, --verbose        Enable verbose output
+    -h, --help          Display this help message
+
+Examples:
+    $0 --param "value"
+    $0 -v --param "example"
+EOF
+}
+
+# Logging function
+log() {
+    local level="$1"
+    shift
+    local message="$*"
+    local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
+
+    case "$level" in
+        INFO)
+            echo "[$timestamp] [INFO] $message"
+            ;;
+        WARN)
+            echo "[$timestamp] [WARN] $message" >&2
+            ;;
+        ERROR)
+            echo "[$timestamp] [ERROR] $message" >&2
+            ;;
+        SUCCESS)
+            echo "[$timestamp] [SUCCESS] $message"
+            ;;
+        DEBUG)
+            if [[ "$VERBOSE" == "true" ]]; then
+                echo "[$timestamp] [DEBUG] $message"
+            fi
+            ;;
+    esac
+}
+
+# Function to check prerequisites
+check_prerequisites() {
+    log INFO "Checking prerequisites..."
+
+    # Add your prerequisite checks here
+    # Example: Check if running as root (uncomment if needed)
+    # if [[ $EUID -eq 0 ]]; then
+    #     log WARN "This script should not be run as root"
+    #     exit 1
+    # fi
+
+    # Example: Check if required commands exist
+    # for cmd in git curl; do
+    #     if ! command -v "$cmd" &> /dev/null; then
+    #         log ERROR "Required command '$cmd' not found"
+    #         exit 1
+    #     fi
+    # done
+
+    log SUCCESS "Prerequisites check completed"
+}
+
+# Main function
+main() {
+    local script_name=$(basename "$0")
+
+    log INFO "========================================"
+    log INFO "STARTING: $script_name"
+    log INFO "========================================"
+
+    # Check prerequisites
+    check_prerequisites
+
+    # Main script logic goes here
+    log INFO "Processing with parameter: $EXAMPLE_PARAM"
+
+    # Example of error handling within the script
+    if ! some_operation; then
+        log ERROR "Operation failed"
+        exit 1
+    fi
+
+    log SUCCESS "========================================"
+    log SUCCESS "COMPLETED: $script_name"
+    log SUCCESS "========================================"
+}# Example function that might fail
+some_operation() {
+    log DEBUG "Performing operation..."
+    # Your operation logic here
+    return 0
+}
+
+# Cleanup function
+cleanup() {
+    local script_name=$(basename "$0")
+    log INFO "Cleanup completed"
+    log INFO "========================================"
+    log INFO "EXITING: $script_name"
+    log INFO "========================================"
+}
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -p|--param)
+            EXAMPLE_PARAM="$2"
+            shift 2
+            ;;
+        -v|--verbose)
+            VERBOSE=true
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            log ERROR "Unknown option: $1"
+            usage
+            exit 1
+            ;;
+    esac
+done
+
+# Set up trap for cleanup on exit
+trap cleanup EXIT
+
+# Execute main function
+main "$@"

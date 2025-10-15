@@ -1,0 +1,116 @@
+#Requires -Version 5.1
+
+<#
+.SYNOPSIS
+    Brief description of what this script does.
+
+.DESCRIPTION
+    Detailed description of the script's functionality.
+
+.PARAMETER ExampleParam
+    Description of the parameter.
+
+.EXAMPLE
+    .\script.ps1 -ExampleParam "value"
+    Description of what this example does.
+
+.NOTES
+    Author: {{ .chezmoi.username }}
+    Machine: {{ .chezmoi.hostname }}
+    OS: {{ .chezmoi.os }}/{{ .chezmoi.arch }}
+    Date: {{ now }}
+    Version: 1.0
+#>
+
+[CmdletBinding(SupportsShouldProcess)]
+param(
+    [Parameter(Mandatory = $false)]
+    [string]$ExampleParam = "DefaultValue"
+)
+
+# Script-level error handling
+$ErrorActionPreference = "Stop"
+$VerbosePreference = if ($PSBoundParameters.ContainsKey('Verbose')) { "Continue" } else { "SilentlyContinue" }
+
+# Functions
+function Write-Log {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Message,
+        
+        [Parameter(Mandatory = $false)]
+        [ValidateSet("Info", "Warning", "Error", "Success")]
+        [string]$Level = "Info"
+    )
+    
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $color = switch ($Level) {
+        "Info"    { "White" }
+        "Warning" { "Yellow" }
+        "Error"   { "Red" }
+        "Success" { "Green" }
+    }
+    
+    Write-Host "[$timestamp] [$Level] $Message" -ForegroundColor $color
+}
+
+function Test-Prerequisites {
+    [CmdletBinding()]
+    param()
+    
+    Write-Log "Checking prerequisites..." -Level Info
+    
+    # Add your prerequisite checks here
+    # Example: Check if running as administrator
+    if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
+        Write-Log "This script requires administrator privileges." -Level Warning
+        throw "Administrator privileges required."
+    }
+    
+    Write-Log "Prerequisites check completed." -Level Success
+}
+
+# Main execution block
+try {
+    Write-Log "========================================" -Level Info
+    Write-Log "STARTING: $($MyInvocation.MyCommand.Name)" -Level Info
+    Write-Log "========================================" -Level Info
+    
+    # Check prerequisites
+    Test-Prerequisites
+    
+    # Main script logic goes here
+    Write-Log "Processing with parameter: $ExampleParam" -Level Info
+    
+    if ($PSCmdlet.ShouldProcess("Target", "Action")) {
+        # Your main script logic here
+        Write-Log "Executing main logic..." -Level Info
+        
+        # Example of error handling within the script
+        try {
+            # Some operation that might fail
+            Write-Log "Performing operation..." -Level Info
+        }
+        catch {
+            Write-Log "Operation failed: $($_.Exception.Message)" -Level Error
+            throw
+        }
+    }
+    
+    Write-Log "========================================" -Level Success
+    Write-Log "COMPLETED: $($MyInvocation.MyCommand.Name)" -Level Success
+    Write-Log "========================================" -Level Success
+}
+catch {
+    Write-Log "Script failed: $($_.Exception.Message)" -Level Error
+    Write-Log "Stack trace: $($_.ScriptStackTrace)" -Level Error
+    exit 1
+}
+finally {
+    # Cleanup code goes here
+    Write-Log "Cleanup completed." -Level Info
+    Write-Log "========================================" -Level Info
+    Write-Log "EXITING: $($MyInvocation.MyCommand.Name)" -Level Info
+    Write-Log "========================================" -Level Info
+}
