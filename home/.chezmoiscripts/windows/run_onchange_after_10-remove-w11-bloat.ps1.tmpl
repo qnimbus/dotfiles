@@ -1,0 +1,253 @@
+#Requires -Version 5.1
+
+<#
+.SYNOPSIS
+    Removes Windows 11 bloatware applications.
+
+.DESCRIPTION
+    This script removes common Windows 11 bloatware applications for the current user and all users.
+    It handles both installed packages and provisioned packages to prevent reinstallation.
+
+.NOTES
+    Author: {{ .chezmoi.username }}
+    Machine: {{ .chezmoi.hostname }}
+    OS: {{ .chezmoi.os }}/{{ .chezmoi.arch }}
+    Version: 1.0
+#>
+
+{{ if and (eq .osid "windows") (not .ephemeral) (not .headless) -}}
+
+[CmdletBinding(SupportsShouldProcess)]
+param()
+
+# --- Self-elevate ---
+if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()
+  ).IsInRole([Security.Principal.WindowsBuiltInRole] 'Administrator')) {
+  $argsLine = "-ExecutionPolicy Bypass -NoProfile -File `"$($MyInvocation.MyCommand.Path)`" " + $MyInvocation.UnboundArguments
+  Start-Process -Wait -FilePath PowerShell.exe -Verb RunAs -ArgumentList $argsLine
+  exit
+}
+
+# Script-level error handling
+$ErrorActionPreference = "Continue"
+$VerbosePreference = if ($PSBoundParameters.ContainsKey('Verbose')) { "Continue" } else { "SilentlyContinue" }
+$ProgressPreference = 'SilentlyContinue'
+
+# Functions
+function Write-Log {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Message,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateSet("Info", "Warning", "Error", "Success")]
+        [string]$Level = "Info"
+    )
+
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $color = switch ($Level) {
+        "Info"    { "White" }
+        "Warning" { "Yellow" }
+        "Error"   { "Red" }
+        "Success" { "Green" }
+    }
+
+    Write-Host "[$timestamp] [$Level] $Message" -ForegroundColor $color
+}
+
+function Test-Prerequisites {
+    [CmdletBinding()]
+    param()
+
+    Write-Log "Checking prerequisites..." -Level Info
+
+    if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
+        Write-Log "This script requires administrator privileges." -Level Warning
+        throw "Administrator privileges required."
+    }
+
+    Write-Log "Prerequisites check completed." -Level Success
+}
+
+function Remove-AppxByName {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$Name,
+        [switch]$AllUsers
+    )
+
+    $getArgs = @{ ErrorAction = 'SilentlyContinue' }
+    if ($AllUsers) { $getArgs['AllUsers'] = $true }
+
+    $pkgs = Get-AppxPackage @getArgs | Where-Object { $_.Name -eq $Name }
+    if (-not $pkgs) {
+        Write-Log "Skipping $Name (not installed)" -Level Info
+        return
+    }
+
+    foreach ($pkg in $pkgs) {
+        Write-Log "Removing $($pkg.Name)" -Level Info
+        try {
+            $remArgs = @{ Package = $pkg.PackageFullName; ErrorAction = 'Stop' }
+            if ($AllUsers) { $remArgs['AllUsers'] = $true }
+            Remove-AppxPackage @remArgs
+            Write-Log "Successfully removed $($pkg.Name)" -Level Success
+        } catch {
+            Write-Log "Failed to remove $($pkg.Name): $($_.Exception.Message)" -Level Warning
+        }
+    }
+}
+
+function Remove-AppxMatching {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$Pattern,
+        [switch]$AllUsers
+    )
+
+    $getArgs = @{ ErrorAction = 'SilentlyContinue' }
+    if ($AllUsers) { $getArgs['AllUsers'] = $true }
+
+    $pkgs = Get-AppxPackage @getArgs |
+            Where-Object { $_.Name -match $Pattern -and $_.NonRemovable -eq $false }
+
+    if (-not $pkgs) {
+        $scope = if ($AllUsers) { "all users" } else { "current user" }
+        Write-Log "No packages match pattern '$Pattern' for $scope" -Level Info
+        return
+    }
+
+    foreach ($pkg in $pkgs) {
+        Write-Log "Removing $($pkg.Name)" -Level Info
+        try {
+            $remArgs = @{ Package = $pkg.PackageFullName; ErrorAction = 'Stop' }
+            if ($AllUsers) { $remArgs['AllUsers'] = $true }
+            Remove-AppxPackage @remArgs
+            Write-Log "Successfully removed $($pkg.Name)" -Level Success
+        } catch {
+            Write-Log "Failed to remove $($pkg.Name): $($_.Exception.Message)" -Level Warning
+        }
+    }
+}
+
+function Remove-ProvisionedByDisplayName {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$DisplayNamePattern
+    )
+
+    $prov = Get-AppxProvisionedPackage -Online |
+            Where-Object { $_.DisplayName -match $DisplayNamePattern }
+
+    if (-not $prov) {
+        Write-Log "No provisioned apps match '$DisplayNamePattern'" -Level Info
+        return
+    }
+
+    foreach ($p in $prov) {
+        Write-Log "Removing provisioned $($p.DisplayName)" -Level Info
+        try {
+            Remove-AppxProvisionedPackage -Online -AllUsers -PackageName $p.PackageName -ErrorAction Stop | Out-Null
+            Write-Log "Successfully removed provisioned $($p.DisplayName)" -Level Success
+        } catch {
+            Write-Log "Failed to remove provisioned $($p.DisplayName): $($_.Exception.Message)" -Level Warning
+        }
+    }
+}
+
+# Main execution block
+try {
+    Write-Log "========================================" -Level Info
+    Write-Log "STARTING: Windows 11 Bloatware Removal" -Level Info
+    Write-Log "========================================" -Level Info
+
+    # Check prerequisites
+    Test-Prerequisites
+
+    # Define apps to remove
+    $apps = @(
+        'Clipchamp.Clipchamp',
+        'Microsoft.549981C3F5F10',
+        'Microsoft.BingNews',
+        'Microsoft.BingWeather',
+        'Microsoft.GamingApp',
+        'Microsoft.GetHelp',
+        'Microsoft.Getstarted',
+        'Microsoft.Microsoft3DViewer',
+        'Microsoft.MicrosoftOfficeHub',
+        'Microsoft.MicrosoftSolitaireCollection',
+        'Microsoft.MicrosoftStickyNotes',
+        'Microsoft.MixedReality.Portal',
+        'Microsoft.MSPaint',
+        'Microsoft.OutlookForWindows',
+        'Microsoft.Paint',
+        'Microsoft.People',
+        'Microsoft.ScreenSketch',
+        'Microsoft.SkypeApp',
+        'Microsoft.StorePurchaseApp',
+        'Microsoft.Windows.Photos',
+        'Microsoft.WindowsAlarms',
+        'Microsoft.WindowsCamera',
+        'Microsoft.WindowsCommunicationsApps',
+        'Microsoft.WindowsFeedbackHub',
+        'Microsoft.WindowsMaps',
+        'Microsoft.WindowsSoundRecorder',
+        'Microsoft.ZuneMusic',
+        'Microsoft.ZuneVideo'
+    )
+
+    # Remove specific apps for all users
+    Write-Log "Removing specific bloatware apps for all users..." -Level Info
+    foreach ($name in $apps) {
+        Remove-AppxByName -Name $name -AllUsers
+    }
+
+    # Pattern-based cleanup
+    $junkPattern = '(?i)xbox|phone|disney|skype|spotify|groove|solitaire|zune|mixedreality|tiktok|adobe|prime|soundrecorder|bingweather|3dviewer'
+
+    Write-Log "Removing pattern-matched apps for current user..." -Level Info
+    Remove-AppxMatching -Pattern $junkPattern
+
+    Write-Log "Removing pattern-matched apps for all users..." -Level Info
+    Remove-AppxMatching -Pattern $junkPattern -AllUsers
+
+    Write-Log "Removing provisioned apps..." -Level Info
+    Remove-ProvisionedByDisplayName -DisplayNamePattern $junkPattern
+
+    Write-Log "========================================" -Level Success
+    Write-Log "COMPLETED: Windows 11 Bloatware Removal" -Level Success
+    Write-Log "========================================" -Level Success
+}
+catch {
+    Write-Log "Script failed: $($_.Exception.Message)" -Level Error
+    Write-Log "Stack trace: $($_.ScriptStackTrace)" -Level Error
+    exit 1
+}
+finally {
+    Write-Log "Cleanup completed." -Level Info
+    Write-Log "========================================" -Level Info
+    Write-Log "EXITING: Windows 11 Bloatware Removal" -Level Info
+    Write-Log "========================================" -Level Info
+
+    # Wait for user input or timeout
+    Write-Host ""
+    Write-Host "Press any key to close, or wait 5 seconds..." -ForegroundColor Cyan
+    $timeout = 5
+    $start = Get-Date
+    while ($true) {
+        if ($host.UI.RawUI.KeyAvailable) {
+            $null = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+            break
+        }
+        if ((Get-Date) - $start -gt (New-TimeSpan -Seconds $timeout)) {
+            break
+        }
+        Start-Sleep -Milliseconds 100
+    }
+}
+
+{{- end -}}
