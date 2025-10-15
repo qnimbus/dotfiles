@@ -1,4 +1,25 @@
+#Requires -Version 5.1
+
+<#
+.SYNOPSIS
+    Removes Windows Search Box dynamic content.
+
+.DESCRIPTION
+    This script disables dynamic content in the Windows Search Box by setting the appropriate registry key.
+    This helps improve privacy and reduces unwanted web-based suggestions in search results.
+
+.NOTES
+    Author: {{ .chezmoi.username }}
+    Machine: {{ .chezmoi.hostname }}
+    OS: {{ .chezmoi.os }}/{{ .chezmoi.arch }}
+    Date: {{ now }}
+    Version: 1.0
+#>
+
 {{ if and (eq .osid "windows") (not .ephemeral) (not .headless) -}}
+
+[CmdletBinding(SupportsShouldProcess)]
+param()
 
 # --- Self-elevate ---
 if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -8,27 +29,107 @@ if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
   exit
 }
 
-# Tidy output (optional)
-# $ProgressPreference = 'SilentlyContinue'
+# Script-level error handling
+$ErrorActionPreference = "Continue"
+$VerbosePreference = if ($PSBoundParameters.ContainsKey('Verbose')) { "Continue" } else { "SilentlyContinue" }
+$ProgressPreference = 'SilentlyContinue'
 
-New-Item "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search" -Force
-New-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search" -Name "EnableDynamicContentInWSB" -PropertyType DWORD -Value 0
+# Functions
+function Write-Log {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Message,
 
-# Wait 5 seconds of a keypress before closing
-Write-Host ""
-Write-Host "Done. (Press any key to close, or wait 5 seconds...)"
-Write-Host ""
-$timeout = 5
-$start = Get-Date
-while ($true) {
-    if ($host.UI.RawUI.KeyAvailable) {
-        $null = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-        break
+        [Parameter(Mandatory = $false)]
+        [ValidateSet("Info", "Warning", "Error", "Success")]
+        [string]$Level = "Info"
+    )
+
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $color = switch ($Level) {
+        "Info"    { "White" }
+        "Warning" { "Yellow" }
+        "Error"   { "Red" }
+        "Success" { "Green" }
     }
-    if ((Get-Date) - $start -gt (New-TimeSpan -Seconds $timeout)) {
-        break
+
+    Write-Host "[$timestamp] [$Level] $Message" -ForegroundColor $color
+}
+
+function Test-Prerequisites {
+    [CmdletBinding()]
+    param()
+
+    Write-Log "Checking prerequisites..." -Level Info
+    Write-Log "Running with administrator privileges." -Level Success
+}
+
+# Main execution block
+try {
+    Write-Log "========================================" -Level Info
+    Write-Log "STARTING: Windows Search Box Configuration" -Level Info
+    Write-Log "========================================" -Level Info
+
+    # Check prerequisites
+    Test-Prerequisites
+
+    # Registry path for Windows Search policies
+    $registryPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search"
+    $registryName = "EnableDynamicContentInWSB"
+    $registryValue = 0
+
+    Write-Log "Configuring Windows Search Box settings..." -Level Info
+
+    # Create the registry key if it doesn't exist
+    Write-Log "Creating registry path: $registryPath" -Level Info
+    try {
+        New-Item $registryPath -Force -ErrorAction Stop | Out-Null
+        Write-Log "Successfully created registry path" -Level Success
+    } catch {
+        Write-Log "Failed to create registry path: $($_.Exception.Message)" -Level Warning
     }
-    Start-Sleep -Milliseconds 100
+
+    # Set the registry value to disable dynamic content
+    Write-Log "Setting $registryName to $registryValue" -Level Info
+    try {
+        New-ItemProperty $registryPath -Name $registryName -PropertyType DWORD -Value $registryValue -Force -ErrorAction Stop | Out-Null
+        Write-Log "Successfully disabled dynamic content in Windows Search Box" -Level Success
+    } catch {
+        Write-Log "Failed to set registry value: $($_.Exception.Message)" -Level Error
+        throw
+    }
+
+    Write-Log "========================================" -Level Success
+    Write-Log "COMPLETED: Windows Search Box Configuration" -Level Success
+    Write-Log "========================================" -Level Success
+}
+catch {
+    Write-Log "Script failed: $($_.Exception.Message)" -Level Error
+    Write-Log "Stack trace: $($_.ScriptStackTrace)" -Level Error
+    exit 1
+}
+finally {
+    Write-Log "Cleanup completed." -Level Info
+    Write-Log "========================================" -Level Info
+    Write-Log "EXITING: Windows Search Box Configuration" -Level Info
+    Write-Log "========================================" -Level Info
+    
+    # Wait for user input or timeout
+    Write-Host ""
+    Write-Host "Press any key to close, or wait 5 seconds..." -ForegroundColor Cyan
+    $timeout = 5
+    $start = Get-Date
+    while ($true) {
+        if ($host.UI.RawUI.KeyAvailable) {
+            $null = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+            break
+        }
+        if ((Get-Date) - $start -gt (New-TimeSpan -Seconds $timeout)) {
+            break
+        }
+        Start-Sleep -Milliseconds 100
+    }
 }
 
 {{- end -}}
