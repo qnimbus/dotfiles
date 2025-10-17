@@ -9,5 +9,5 @@
     "terminal.integrated.defaultProfile.windows": "Git Bash",
     "[jsonc]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode"
-    }
+    },
 }
