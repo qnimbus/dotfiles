@@ -28,6 +28,17 @@ sourceDir: "{{ .chezmoi.homeDir }}/.dotfiles"
 git:
   autopush: true
 
+# Make chezmoi run PowerShell scripts in a way that ignores policy,
+# uses 64-bit Windows PowerShell, and doesn't require any machine changes.
+interpreters:
+  ps1:
+    command: "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe"
+    args:
+      - -NoProfile
+      - -ExecutionPolicy
+      - Bypass
+      - -File
+
 # Optional quality-of-life
 edit:
   command: code
