@@ -27,6 +27,15 @@ $ eval $(op signin)
 winget install twpayne.chezmoi
 ````
 
+> **⚠️ Windows users:** Enable **Developer Mode** to allow chezmoi to create symlinks.
+> 
+> Go to **Settings** → **Privacy & Security** → **For developers** → toggle **Developer Mode** on.
+> 
+> Alternatively, run this PowerShell command as Administrator:
+> ```powershell
+> reg add "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock" /t REG_DWORD /f /v "AllowDevelopmentWithoutDevLicense" /d "1"
+> ```
+
 **macOS**
 
 ```bash
