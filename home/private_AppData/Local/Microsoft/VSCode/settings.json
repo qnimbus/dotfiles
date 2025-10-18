@@ -7,7 +7,9 @@
     "files.trimFinalNewlines": true,
     "terminal.external.windowsExec": "C:\\Windows\\System32\\bash.exe",
     "terminal.integrated.defaultProfile.windows": "Git Bash",
+    "extensions.ignoreRecommendations": true,
     "[jsonc]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode"
     },
+    "chat.mcp.access": "all",
 }
