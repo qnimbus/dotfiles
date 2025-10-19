@@ -42,6 +42,15 @@ function Test-IsVSCode {
     return ($vscodeIndicators -contains $true)
 }
 
+# Key Handler Functions
+function Set-CtrlDHandler {
+    <#
+    .SYNOPSIS
+    Set up CTRL-D key handler to exit PowerShell (like Unix shells)
+    #>
+    Set-PSReadLineKeyHandler -Key Ctrl+D -Function DeleteCharOrExit
+}
+
 # Environment Information Functions
 function Show-EnvironmentInfo {
     <#
@@ -353,46 +362,53 @@ if (-not $Env:__ShellDepth) {
 }
 $Env:__ShellDepth = [int] $Env:__ShellDepth + 1
 
+# Set up CTRL-D key handler for Unix-like exit behavior
+Set-CtrlDHandler
+
 # Set up GITHUB_TOKEN from 1Password
-try {
-    if (Get-Command op.exe -ErrorAction SilentlyContinue) {
-        # Prompt user with timeout
-        $timeoutSeconds = 3
-        $defaultResponse = "N"
-        $response = $defaultResponse
+if (-not (Test-IsVSCode)) {
+    try {
+        if (Get-Command op.exe -ErrorAction SilentlyContinue) {
+            # Prompt user with timeout
+            $timeoutSeconds = 3
+            $defaultResponse = "N"
+            $response = $defaultResponse
 
-        Write-Host "Load GitHub token from 1Password? (Y/N) [Default: $defaultResponse] " -NoNewLine -ForegroundColor Cyan
-        Write-Host "($timeoutSeconds seconds) " -NoNewLine -ForegroundColor Gray
+            Write-Host "Load GitHub token from 1Password? (Y/N) [Default: $defaultResponse] " -NoNewLine -ForegroundColor Cyan
+            Write-Host "($timeoutSeconds seconds) " -NoNewLine -ForegroundColor Gray
 
-        $timer = 0
-        while ((-not $Host.UI.RawUI.KeyAvailable) -and ($timer -lt $timeoutSeconds)) {
-            Start-Sleep -Milliseconds 100
-            $timer += 0.1
-        }
+            $timer = 0
+            while ((-not $Host.UI.RawUI.KeyAvailable) -and ($timer -lt $timeoutSeconds)) {
+                Start-Sleep -Milliseconds 100
+                $timer += 0.1
+            }
 
-        if ($Host.UI.RawUI.KeyAvailable) {
-            $response = ($Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")).Character.ToString().ToUpper()
-        }
+            if ($Host.UI.RawUI.KeyAvailable) {
+                $response = ($Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")).Character.ToString().ToUpper()
+            }
 
-        Write-Host ""
+            Write-Host ""
 
-        if ($response -eq "Y") {
-            Write-Host "Loading GitHub token from 1Password..." -ForegroundColor Cyan
-            $githubToken = op.exe read "op://Private/GitHub/GitHub Personal Access Tokens/General personal access token" 2>$null
-            if ($githubToken -and $githubToken.Trim() -ne "") {
-                $Env:GITHUB_TOKEN = $githubToken.Trim()
-                Write-Host "✓ GITHUB_TOKEN loaded from 1Password" -ForegroundColor Green
+            if ($response -eq "Y") {
+                Write-Host "Loading GitHub token from 1Password..." -ForegroundColor Cyan
+                $githubToken = op.exe read "op://Private/GitHub/GitHub Personal Access Tokens/General personal access token" 2>$null
+                if ($githubToken -and $githubToken.Trim() -ne "") {
+                    $Env:GITHUB_TOKEN = $githubToken.Trim()
+                    Write-Host "✓ GITHUB_TOKEN loaded from 1Password" -ForegroundColor Green
+                } else {
+                    Write-Host "⚠ Could not retrieve GITHUB_TOKEN from 1Password" -ForegroundColor Yellow
+                }
             } else {
-                Write-Host "⚠ Could not retrieve GITHUB_TOKEN from 1Password" -ForegroundColor Yellow
+                Write-Host "Skipping GitHub token setup" -ForegroundColor Gray
             }
         } else {
-            Write-Host "Skipping GitHub token setup" -ForegroundColor Gray
+            Write-Host "⚠ 1Password CLI (op.exe) not found - GITHUB_TOKEN not set" -ForegroundColor Yellow
         }
-    } else {
-        Write-Host "⚠ 1Password CLI (op.exe) not found - GITHUB_TOKEN not set" -ForegroundColor Yellow
+    } catch {
+        Write-Host "⚠ Error loading GITHUB_TOKEN from 1Password: $($_.Exception.Message)" -ForegroundColor Yellow
     }
-} catch {
-    Write-Host "⚠ Error loading GITHUB_TOKEN from 1Password: $($_.Exception.Message)" -ForegroundColor Yellow
+} else {
+    Write-Host "Skipping GitHub token setup (VS Code detected)" -ForegroundColor Gray
 }
 
 ################################################################################
