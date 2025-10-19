@@ -43,80 +43,16 @@ function Test-IsVSCode {
 }
 
 # Key Handler Functions
+# Key Handler Functions
 function Set-CtrlDHandler {
     <#
     .SYNOPSIS
     Set up CTRL-D key handler to exit PowerShell (like Unix shells)
     #>
-    try {
-        # Ensure PSReadLine is loaded
-        if (-not (Get-Module PSReadLine -ListAvailable)) {
-            Write-Host "⚠ PSReadLine module not available - CTRL-D handler not set" -ForegroundColor Yellow
-            return
-        }
-
-        # Import PSReadLine if not already loaded
-        if (-not (Get-Module PSReadLine)) {
-            Import-Module PSReadLine -Force
-        }
-
-        # Check current CTRL-D binding
-        $currentBinding = Get-PSReadLineKeyHandler | Where-Object { $_.Key -eq "Ctrl+d" }
-        if ($currentBinding) {
-            Write-Host "Current CTRL-D binding: $($currentBinding.Function)" -ForegroundColor Cyan
-        }
-
-        # Set the key handler
-        Set-PSReadLineKeyHandler -Key Ctrl+D -Function DeleteCharOrExit
-
-        # Verify the binding was set
-        $newBinding = Get-PSReadLineKeyHandler | Where-Object { $_.Key -eq "Ctrl+d" }
-        if ($newBinding -and $newBinding.Function -eq "DeleteCharOrExit") {
-            Write-Host "✓ CTRL-D handler set successfully (Unix-like exit behavior)" -ForegroundColor Green
-        } else {
-            Write-Host "⚠ CTRL-D handler may not have been set correctly" -ForegroundColor Yellow
-        }
-    }
-    catch {
-        Write-Host "⚠ Failed to set CTRL-D handler: $($_.Exception.Message)" -ForegroundColor Yellow
-    }
+    Set-PSReadLineKeyHandler -Key Ctrl+d -Function DeleteCharOrExit
 }
 
-function Test-CtrlDHandler {
-    <#
-    .SYNOPSIS
-    Test and debug CTRL-D key handler setup
-    #>
-    Write-Host "=== CTRL-D Handler Debug Information ===" -ForegroundColor Yellow
-
-    # Check if PSReadLine is available and loaded
-    $psReadLineAvailable = Get-Module PSReadLine -ListAvailable
-    $psReadLineLoaded = Get-Module PSReadLine
-
-    Write-Host "PSReadLine available: $($psReadLineAvailable -ne $null)" -ForegroundColor $(if ($psReadLineAvailable) { 'Green' } else { 'Red' })
-    Write-Host "PSReadLine loaded: $($psReadLineLoaded -ne $null)" -ForegroundColor $(if ($psReadLineLoaded) { 'Green' } else { 'Red' })
-
-    if ($psReadLineLoaded) {
-        Write-Host "PSReadLine version: $($psReadLineLoaded.Version)" -ForegroundColor Cyan
-
-        # Check CTRL-D binding
-        $ctrlDBinding = Get-PSReadLineKeyHandler | Where-Object { $_.Key -eq "Ctrl+d" }
-        if ($ctrlDBinding) {
-            Write-Host "CTRL-D is bound to: $($ctrlDBinding.Function)" -ForegroundColor Green
-            Write-Host "Description: $($ctrlDBinding.Description)" -ForegroundColor Cyan
-        } else {
-            Write-Host "CTRL-D is not bound to any function" -ForegroundColor Red
-        }
-
-        # Show all Ctrl+ bindings for reference
-        Write-Host "`nOther Ctrl+ key bindings:" -ForegroundColor Yellow
-        Get-PSReadLineKeyHandler | Where-Object { $_.Key -like "Ctrl+*" } |
-            Select-Object Key, Function | Format-Table -AutoSize
-    }
-
-    Write-Host "`nTo test CTRL-D: Press Ctrl+D on an empty command line" -ForegroundColor Cyan
-    Write-Host "Expected behavior: Should exit PowerShell session" -ForegroundColor Cyan
-}# Environment Information Functions
+# Environment Information Functions
 function Show-EnvironmentInfo {
     <#
     .SYNOPSIS
@@ -727,7 +663,6 @@ Set-Alias forcecheck Invoke-ForceUpdateCheck
 Set-Alias envinfo Show-EnvironmentInfo
 Set-Alias checkstatus Show-DailyCheckStatus
 Set-Alias resetcheck Reset-DailyCheckTimer
-Set-Alias testctrld Test-CtrlDHandler
 
 ################################################################################
 # PROMPT SETUP
