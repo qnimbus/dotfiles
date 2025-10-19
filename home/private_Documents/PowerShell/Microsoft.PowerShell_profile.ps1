@@ -38,7 +38,7 @@ function Test-IsVSCode {
         ($Env:VSCODE_GIT_IPC_HANDLE -ne $null),
         ($Env:GIT_ASKPASS -like '*vscode*')
     )
-    
+
     return ($vscodeIndicators -contains $true)
 }
 
@@ -51,19 +51,19 @@ function Show-EnvironmentInfo {
     Show only VS Code related environment variables
     #>
     param([switch]$VSCodeOnly)
-    
+
     Write-Host "=== Environment Information ===" -ForegroundColor Yellow
     Write-Host "VSCode Detection: $(Test-IsVSCode)" -ForegroundColor $(if (Test-IsVSCode) { 'Green' } else { 'Red' })
     Write-Host "Shell Depth: $Env:__ShellDepth" -ForegroundColor Cyan
-    
+
     if ($VSCodeOnly) {
-        $envVars = Get-ChildItem Env: | Where-Object { 
-            $_.Name -match 'vscode|term|editor' -or $_.Value -match 'vscode|code' 
+        $envVars = Get-ChildItem Env: | Where-Object {
+            $_.Name -match 'vscode|term|editor' -or $_.Value -match 'vscode|code'
         } | Sort-Object Name
     } else {
         $envVars = Get-ChildItem Env: | Sort-Object Name
     }
-    
+
     $envVars | Format-Table Name, Value -AutoSize
 }
 
@@ -110,14 +110,14 @@ function Show-DailyCheckStatus {
     Display the status of the daily package update check
     #>
     $dailyCheckFile = Join-Path (Split-Path $PROFILE -Parent) ".lastcheck"
-    
+
     Write-Host "=== Daily Check Status ===" -ForegroundColor Cyan
-    
+
     if (Test-Path $dailyCheckFile) {
         try {
             $lastCheckTime = Get-Content $dailyCheckFile | Get-Date
             $hoursSinceCheck = ((Get-Date) - $lastCheckTime).TotalHours
-            
+
             Write-Host "Last check: $($lastCheckTime.ToString('yyyy-MM-dd HH:mm:ss'))" -ForegroundColor Green
             Write-Host "Hours since last check: $([math]::Round($hoursSinceCheck, 1))" -ForegroundColor Green
             Write-Host "Check due: $(if ($hoursSinceCheck -ge 24) { 'Yes' } else { 'No' })" -ForegroundColor $(if ($hoursSinceCheck -ge 24) { 'Yellow' } else { 'Green' })
@@ -128,7 +128,7 @@ function Show-DailyCheckStatus {
     } else {
         Write-Host "No previous check recorded - check will run on next startup" -ForegroundColor Yellow
     }
-    
+
     Write-Host "VSCode detected: $(Test-IsVSCode)" -ForegroundColor $(if (Test-IsVSCode) { 'Yellow' } else { 'Green' })
     Write-Host "Shell depth: $Env:__ShellDepth" -ForegroundColor Cyan
 }
@@ -142,8 +142,8 @@ function which {
     The command to search for
     #>
     param($command)
-    Get-Command -Name $command -ErrorAction SilentlyContinue | 
-        Select-Object -ExpandProperty Path -ErrorAction SilentlyContinue 
+    Get-Command -Name $command -ErrorAction SilentlyContinue |
+        Select-Object -ExpandProperty Path -ErrorAction SilentlyContinue
 }
 
 function Set-Location-Directory-Opus {
@@ -169,13 +169,13 @@ function Get-LSListing {
         [Parameter(ValueFromRemainingArguments=$true)]
         $args
     )
-    
+
     $force = $false
     $recurse = $false
     $directory = $false
     $sortBy = $null
     $remainingArgs = @()
-    
+
     foreach ($arg in $args) {
         switch -Regex ($arg) {
             '^-[alAhRrtSd]*$' {
@@ -192,15 +192,15 @@ function Get-LSListing {
             }
         }
     }
-    
+
     $params = @{}
     if ($force) { $params['Force'] = $true }
     if ($recurse) { $params['Recurse'] = $true }
     if ($directory) { $params['Directory'] = $true }
     if ($remainingArgs.Count -gt 0) { $params['Path'] = $remainingArgs }
-    
+
     $result = Get-ChildItem @params
-    
+
     if ($sortBy) {
         $result | Sort-Object $sortBy -Descending
     } else {
@@ -219,21 +219,21 @@ function Remove-ItemSafe {
         [Parameter(ValueFromRemainingArguments=$true)]
         $args
     )
-    
+
     $force = $false
     $recurse = $false
     $verbose = $false
     $whatIf = $false
     $confirm = $true  # Default to confirm for safety
     $paths = @()
-    
+
     # Parse arguments
     foreach ($arg in $args) {
         if ($arg -match '^-[rfvnih]+$') {
             # Parse combined flags like -rf, -rfv, etc.
             if ($arg -match 'r') { $recurse = $true }
-            if ($arg -match 'f') { 
-                $force = $true 
+            if ($arg -match 'f') {
+                $force = $true
                 $confirm = $false  # -f means force without confirmation
             }
             if ($arg -match 'v') { $verbose = $true }
@@ -258,13 +258,13 @@ function Remove-ItemSafe {
             $paths += $arg
         }
     }
-    
+
     # Safety check: require at least one path
     if ($paths.Count -eq 0) {
         Write-Error "rm: missing operand. Try 'rm --help' for more information."
         return
     }
-    
+
     # Safety check: prevent common dangerous operations
     $dangerousPaths = @('/', '\', 'C:\', 'C:/', '*', '/*', '\*', 'C:\*', 'C:/*')
     foreach ($path in $paths) {
@@ -273,7 +273,7 @@ function Remove-ItemSafe {
             return
         }
     }
-    
+
     # Build PowerShell parameters
     $params = @{}
     if ($force) { $params['Force'] = $true }
@@ -281,7 +281,7 @@ function Remove-ItemSafe {
     if ($verbose) { $params['Verbose'] = $true }
     if ($whatIf) { $params['WhatIf'] = $true }
     if ($confirm) { $params['Confirm'] = $true }
-    
+
     # Safety check: verify paths exist before attempting removal
     $validPaths = @()
     foreach ($path in $paths) {
@@ -291,12 +291,12 @@ function Remove-ItemSafe {
             Write-Warning "rm: cannot remove '$path': No such file or directory"
         }
     }
-    
+
     if ($validPaths.Count -eq 0) {
         Write-Error "rm: no valid paths to remove"
         return
     }
-    
+
     # Additional safety for recursive operations
     if ($recurse -and -not $force) {
         $dirCount = 0
@@ -305,7 +305,7 @@ function Remove-ItemSafe {
                 $dirCount++
             }
         }
-        
+
         if ($dirCount -gt 0) {
             Write-Host "About to recursively remove $dirCount director(ies):" -ForegroundColor Yellow
             foreach ($path in $validPaths) {
@@ -316,7 +316,7 @@ function Remove-ItemSafe {
             }
         }
     }
-    
+
     # Execute the removal
     try {
         foreach ($path in $validPaths) {
@@ -352,6 +352,23 @@ if (-not $Env:__ShellDepth) {
     $Env:__ShellDepth = 0
 }
 $Env:__ShellDepth = [int] $Env:__ShellDepth + 1
+
+# Set up GITHUB_TOKEN from 1Password
+try {
+    if (Get-Command op.exe -ErrorAction SilentlyContinue) {
+        $githubToken = op.exe read "op://Private/GitHub/GitHub Personal Access Tokens/General personal access token" 2>$null
+        if ($githubToken -and $githubToken.Trim() -ne "") {
+            $Env:GITHUB_TOKEN = $githubToken.Trim()
+            Write-Host "✓ GITHUB_TOKEN loaded from 1Password" -ForegroundColor Green
+        } else {
+            Write-Host "⚠ Could not retrieve GITHUB_TOKEN from 1Password" -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host "⚠ 1Password CLI (op.exe) not found - GITHUB_TOKEN not set" -ForegroundColor Yellow
+    }
+} catch {
+    Write-Host "⚠ Error loading GITHUB_TOKEN from 1Password: $($_.Exception.Message)" -ForegroundColor Yellow
+}
 
 ################################################################################
 # DAILY UPDATE CHECK LOGIC
@@ -487,25 +504,25 @@ if ($forceUpdate -Or ($isFirstShell -And $isNotVSCode -And $isDailyCheckDue)) {
         $Software = [Software]::new()
         $Software.Name = $_.Substring(0, $idStart - 1).Trim()
         $info = $_.Substring($idStart) -split '\s+'
-        
+
         # Skip if we don't have enough info or source is invalid
         if ($info.Length -lt 4) {
             Write-Verbose "Skipping package due to insufficient info: $_"
             return
         }
-        
+
         $Software.Id = $info[0]
         $Software.Version = $info[1]
         $Software.AvailableVersion = $info[2]
         $Software.Source = $info[3]
-        
+
         # Filter out packages without valid winget sources
         $validSources = @('winget', 'msstore')
         if ($Software.Source -notin $validSources) {
             Write-Verbose "Skipping package '$($Software.Name)' - source '$($Software.Source)' not managed by winget"
             return
         }
-        
+
         # Skip packages where source is empty or contains version numbers (indicates parsing error)
         if ([string]::IsNullOrWhiteSpace($Software.Source) -or $Software.Source -match '^\d+\.' -or $Software.Source -eq '-') {
             Write-Verbose "Skipping package '$($Software.Name)' - invalid or empty source field"
@@ -516,15 +533,15 @@ if ($forceUpdate -Or ($isFirstShell -And $isNotVSCode -And $isDailyCheckDue)) {
     }
 
     # Filter and display only packages with valid sources
-    $validUpgrades = $upgrades | Where-Object { 
-        $_.Source -in @('winget', 'msstore') -and 
+    $validUpgrades = $upgrades | Where-Object {
+        $_.Source -in @('winget', 'msstore') -and
         ![string]::IsNullOrWhiteSpace($_.Id) -and
         ![string]::IsNullOrWhiteSpace($_.Source)
     }
 
     if ($validUpgrades.Count -ge 1) {
         Write-Host "Found $($validUpgrades.Count) package(s) available for upgrade:" -ForegroundColor Green
-        
+
         # View list
         $validUpgrades | Format-Table Name, Id, Version, AvailableVersion, Source -AutoSize
 
@@ -546,7 +563,7 @@ if ($forceUpdate -Or ($isFirstShell -And $isNotVSCode -And $isDailyCheckDue)) {
 
         Write-Host ""
 
-        if ($response -eq "Y") { 
+        if ($response -eq "Y") {
             # Loop through the list, compare with the skip list and execute the upgrade
             $validUpgrades | ForEach-Object -Process {
                 if ($skipUpdate -contains $_.Id) {
@@ -562,7 +579,7 @@ if ($forceUpdate -Or ($isFirstShell -And $isNotVSCode -And $isDailyCheckDue)) {
                 catch {
                     Write-Host "✗ Failed to upgrade $($_.Name): $($_.Exception.Message)" -ForegroundColor Red
                 }
-            }      
+            }
         }
         else {
             # Show manual upgrade commands
