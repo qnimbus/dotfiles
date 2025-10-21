@@ -1,5 +1,9 @@
 README.md
 
+# 1Password CLI
+.config/op/
+.config/op/**
+
 {{ if ne .chezmoi.os "linux" }}
 *.sh
 **/*/*.sh
