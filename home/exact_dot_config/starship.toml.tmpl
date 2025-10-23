@@ -12,7 +12,7 @@ add_newline = false
 add_newline = true
 {{- end }}
 
-{{- if $profile = "pure" }}
+{{- if eq $profile "pure" }}
 format = """
 $username\
 $hostname\
