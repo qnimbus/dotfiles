@@ -3,6 +3,8 @@
 {{- $isDarwin  := eq .chezmoi.os "darwin"  -}}
 {{- $isLinux   := eq .chezmoi.os "linux"   -}}
 
+{{- $profile := 'pure' -}}
+
 # Windows: compact; Linux/macOS: keep a blank line (nice for multi-line outputs)
 {{- if $isWindows }}
 add_newline = false
