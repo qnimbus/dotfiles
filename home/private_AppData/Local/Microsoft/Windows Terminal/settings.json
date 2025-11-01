@@ -35,6 +35,11 @@
     {
         "defaults": 
         {
+            "bellStyle": 
+            [
+                "window",
+                "taskbar"
+            ],
             "colorScheme": "One Half Dark",
             "font": 
             {

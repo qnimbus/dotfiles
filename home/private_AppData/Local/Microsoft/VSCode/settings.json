@@ -12,4 +12,5 @@
         "editor.defaultFormatter": "esbenp.prettier-vscode"
     },
     "chat.mcp.access": "all",
+    "redhat.telemetry.enabled": false,
 }
