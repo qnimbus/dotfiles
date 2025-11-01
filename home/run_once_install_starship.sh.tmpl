@@ -29,20 +29,12 @@ if ! has starship; then
 fi
 
 # Idempotently ensure ~/.local/bin is on PATH and starship is initialized for bash
-BASHRC="$HOME/.bashrc"
+BASHRC="$HOME/.bash/bashrc"
 
 # Create file if missing
 [ -f "$BASHRC" ] || touch "$BASHRC"
 
 # Create a separate section in .bashrc
-
-# Put ~/.local/bin on PATH for future bash shells (before starship init)
-ensure_line 'export PATH="$HOME/.local/bin:$PATH"   # Chezmoi edit' "$BASHRC"
-
-# Add chezmoi aliases and functions
-ensure_line 'alias cz=chezmoi                       # Chezmoi edit' "$BASHRC"
-ensure_line 'function cze() { chezmoi edit "$@"; }  # Chezmoi edit' "$BASHRC"
-ensure_line 'function cza() { chezmoi apply "$@"; } # Chezmoi edit' "$BASHRC"
 
 # Enable starship for bash (idempotent)
 ensure_line 'eval "$(starship init bash)"           # Chezmoi edit' "$BASHRC"

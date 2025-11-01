@@ -122,3 +122,5 @@ export PATH="$HOME/.local/bin:$PATH"
 
 # For aliases
 source "${HOME%/}/.local/bin/aliases.sh"
+
+eval "$(starship init bash)"           # Chezmoi edit
