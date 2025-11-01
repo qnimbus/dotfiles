@@ -4,6 +4,7 @@
 {{- $isWindows := eq .chezmoi.os "windows" -}}
 {{- $isDarwin  := eq .chezmoi.os "darwin"  -}}
 {{- $isLinux   := eq .chezmoi.os "linux"   -}}
+{{- $isWSL     := .wsl | default false -}}
 
 {{- $profile := "gruvbox-rainbow" -}}
 
@@ -111,6 +112,11 @@ color_yellow = '#d79921'
 [os]
 disabled = false
 style = "bg:color_orange fg:color_fg0"
+{{- if $isWSL }}
+format = "[ $symbol WSL ]($style)"
+{{- else }}
+format = "[ $symbol ]($style)"
+{{- end }}
 
 [os.symbols]
 Windows = "󰍲"
@@ -334,14 +340,17 @@ disabled = false
 # OS badge: tiny visual cue per OS
 [os]
 style = "bg:#9A348E"
-{{- if $isWindows }}
-format = "[  ]($style)"
+{{- if $isWSL }}
+format = "[ (WSL) ]($style)"
+disabled = false
+{{- else if $isWindows }}
+format = "[  ]($style)"
 disabled = false
 {{- else if $isDarwin }}
-format = "[  ]($style)"
+format = "[  ]($style)"
 disabled = false
 {{- else if $isLinux }}
-format = "[  ]($style)"
+format = "[  ]($style)"
 disabled = false
 {{- else }}
 disabled = true
