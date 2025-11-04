@@ -12,5 +12,6 @@
         "editor.defaultFormatter": "esbenp.prettier-vscode"
     },
     "chat.mcp.access": "all",
+    "editor.fontFamily": "FiraCode Nerd Font Mono",
     "redhat.telemetry.enabled": false,
 }
