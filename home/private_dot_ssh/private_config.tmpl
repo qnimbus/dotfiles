@@ -20,3 +20,12 @@ Host 172.16.*.*
 Host 10.*.*.*
   StrictHostKeyChecking no
   UserKnownHostsFile /dev/null
+
+Host ha ha.home.vwn.io 10.10.0.21
+  HostName 10.10.0.21
+  User root
+
+  IPQoS none
+  Ciphers aes128-gcm@openssh.com,aes256-gcm@openssh.com,aes128-ctr,aes256-ctr
+  MACs hmac-sha2-256,hmac-sha2-512
+  KexAlgorithms curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group14-sha256
