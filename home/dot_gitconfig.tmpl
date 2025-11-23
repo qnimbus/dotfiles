@@ -10,7 +10,9 @@
 {{- if eq .chezmoi.os "windows" }}
 	# Use 1Password's SSH signer; LOCALAPPDATA keeps it portable on Windows.
 	# Forward slashes work fine in Git config on Windows.
-	program = {{ (env "LOCALAPPDATA") | replace "\\" "/" }}/1Password/app/8/op-ssh-sign.exe
+	program = {{ (env "LOCALAPPDATA") | replace "\\" "/" }}/Microsoft/WindowsApps/op-ssh-sign.exe
+{{- else}}
+  program = "/mnt/c/Users/bas/AppData/Local/Microsoft/WindowsApps/op-ssh-sign-wsl.exe"
 {{- end }}
 
 [commit]
