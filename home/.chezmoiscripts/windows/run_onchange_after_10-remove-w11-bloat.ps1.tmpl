@@ -207,7 +207,7 @@ try {
     }
 
     # Pattern-based cleanup
-    $junkPattern = '(?i)phone|disney|skype|spotify|groove|solitaire|zune|mixedreality|tiktok|adobe|prime|soundrecorder|bingweather|3dviewer'
+    $junkPattern = '(?i)disney|skype|spotify|groove|solitaire|zune|mixedreality|tiktok|adobe|prime|soundrecorder|bingweather|3dviewer'
 
     Write-Log "Removing pattern-matched apps for current user..." -Level Info
     Remove-AppxMatching -Pattern $junkPattern
