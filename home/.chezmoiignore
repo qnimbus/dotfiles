@@ -4,6 +4,14 @@ README.md
 .config/op/
 .config/op/**
 
+# Claude (default: ignore all runtime state)
+.claude/**
+!.claude/
+!.claude/skills/**
+!.claude/settings.json
+!.claude/plugins/installed_plugins.json
+!.claude/plugins/known_marketplaces.json
+
 {{ if ne .chezmoi.os "linux" }}
 *.sh
 **/*/*.sh
