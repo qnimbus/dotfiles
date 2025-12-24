@@ -34,6 +34,78 @@ import sys
 import subprocess
 import json
 from pathlib import Path
+import shutil
+
+
+def is_wsl2():
+    """Detect if running in WSL2 environment."""
+    try:
+        with open('/proc/version', 'r') as f:
+            version_info = f.read().lower()
+            return 'microsoft' in version_info or 'wsl' in version_info
+    except:
+        return False
+
+
+def get_windows_ssh_path():
+    """Get the path to Windows ssh.exe when running in WSL2."""
+    ssh_path = shutil.which('ssh.exe')
+    if ssh_path:
+        return ssh_path
+
+    # Fallback: try common Windows SSH path directly
+    fallback = '/mnt/c/Windows/System32/OpenSSH/ssh.exe'
+    if os.path.exists(fallback):
+        return fallback
+
+    # If still not found, return None (will fall back to Unix ssh)
+    return None
+
+
+def convert_path_for_windows(path_str):
+    """
+    Convert WSL Unix path to Windows path format if needed.
+
+    Examples:
+        /home/user/.ssh/id_rsa -> \\\\wsl$\\Ubuntu\\home\\user\\.ssh\\id_rsa
+        /mnt/c/temp/file.txt -> C:\\temp\\file.txt
+        ~/.ssh/id_rsa -> (expanded and converted)
+    """
+    if not path_str:
+        return path_str
+
+    # Expand user home directory
+    expanded = Path(path_str).expanduser()
+
+    # Convert to absolute path
+    abs_path = expanded.resolve()
+    abs_str = str(abs_path)
+
+    # Check if this is a /mnt/<drive> path (Windows drive mount)
+    if abs_str.startswith('/mnt/'):
+        # Extract drive letter and rest of path
+        # /mnt/c/temp/file.txt -> C:\temp\file.txt
+        parts = abs_str[5:].split('/', 1)  # Skip '/mnt/'
+        if len(parts) > 0 and len(parts[0]) == 1:
+            drive_letter = parts[0].upper()
+            rest_of_path = parts[1] if len(parts) > 1 else ''
+            windows_path = f"{drive_letter}:\\" + rest_of_path.replace('/', '\\')
+            return windows_path
+
+    # For WSL2, we need to use the WSL network path format
+    # Get the WSL distro name from /etc/hostname or use default
+    try:
+        with open('/etc/hostname', 'r') as f:
+            distro = f.read().strip()
+    except:
+        distro = 'Ubuntu'
+
+    # Convert /home/... to \\wsl$\distro\home\...
+    # Windows uses backslashes, but we need to escape them
+    windows_path = abs_str.replace('/', '\\')
+    windows_path = f"\\\\wsl$\\{distro}{windows_path}"
+
+    return windows_path
 
 
 def get_connection_params():
@@ -53,8 +125,21 @@ def build_ssh_command(command, host, user, port='22', key_path=None, password=No
 
     SECURITY: This function NEVER reads private keys. It only passes paths
     to the ssh command, which handles key material internally.
+
+    WSL2: When running in WSL2, uses Windows ssh.exe for proper 1Password
+    ssh-agent integration.
     """
-    ssh_cmd = ['ssh']
+    # Detect WSL2 and use Windows SSH if available
+    use_windows_ssh = False
+    if is_wsl2():
+        windows_ssh = get_windows_ssh_path()
+        if windows_ssh:
+            ssh_cmd = [windows_ssh]
+            use_windows_ssh = True
+        else:
+            ssh_cmd = ['ssh']
+    else:
+        ssh_cmd = ['ssh']
 
     # Add port if not default
     if port and port != '22':
@@ -65,7 +150,14 @@ def build_ssh_command(command, host, user, port='22', key_path=None, password=No
         key_file = Path(key_path).expanduser()
         if not key_file.exists():
             print(f"Warning: Key file not found: {key_file}", file=sys.stderr)
-        ssh_cmd.extend(['-i', str(key_file)])
+
+        # Convert path to Windows format if using Windows SSH in WSL2
+        if use_windows_ssh:
+            key_path_str = convert_path_for_windows(str(key_file))
+        else:
+            key_path_str = str(key_file)
+
+        ssh_cmd.extend(['-i', key_path_str])
 
     # Disable strict host key checking for automation (optional, can be removed)
     ssh_cmd.extend(['-o', 'StrictHostKeyChecking=accept-new'])

@@ -202,6 +202,51 @@ python3 scripts/ssh_exec.py "uptime"
 
 **Security Note**: SSH agent is most secure. Key files are second best. Passwords should only be used when keys are not available.
 
+## WSL2 Support
+
+When running in WSL2 (Windows Subsystem for Linux), this skill automatically detects the environment and uses the Windows version of `ssh.exe` and `scp.exe` instead of the Ubuntu versions. This is essential for proper integration with Windows-based SSH agents like 1Password.
+
+### How It Works
+
+1. **Automatic Detection** - The scripts detect WSL2 by checking `/proc/version` for "microsoft" or "wsl"
+2. **Windows SSH Resolution** - Uses `which ssh.exe` to find the Windows SSH executable from your Windows PATH
+3. **Path Conversion** - Automatically converts WSL Unix paths (like `/home/user/.ssh/id_rsa`) to Windows WSL network paths (like `\\wsl$\Ubuntu\home\user\.ssh\id_rsa`)
+4. **Transparent Operation** - All existing commands work exactly the same way
+
+### 1Password Integration
+
+This WSL2 support enables seamless 1Password SSH agent integration:
+
+```bash
+# In WSL2, this automatically uses Windows ssh.exe
+# which connects to 1Password's SSH agent running on Windows
+export SSH_HOST=example.com
+export SSH_USER=deploy
+python3 scripts/ssh_exec.py "uptime"
+```
+
+### Requirements
+
+- WSL2 (not WSL1)
+- Windows OpenSSH installed (usually at `C:\Windows\System32\OpenSSH\ssh.exe`)
+- 1Password SSH agent enabled in Windows (if using 1Password)
+
+### Verification
+
+To verify WSL2 detection is working:
+
+```bash
+# Check if running in WSL2
+cat /proc/version  # Should contain "microsoft" or "WSL"
+
+# Check if Windows ssh.exe is found
+which ssh.exe      # Should show path like /mnt/c/Windows/System32/OpenSSH/ssh.exe
+```
+
+### Fallback Behavior
+
+If Windows SSH executables are not found, the scripts automatically fall back to using the standard Unix `ssh` and `scp` commands.
+
 ## Configuration Options
 
 ### Environment Variables

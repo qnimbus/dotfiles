@@ -32,6 +32,78 @@ import os
 import sys
 import subprocess
 from pathlib import Path
+import shutil
+
+
+def is_wsl2():
+    """Detect if running in WSL2 environment."""
+    try:
+        with open('/proc/version', 'r') as f:
+            version_info = f.read().lower()
+            return 'microsoft' in version_info or 'wsl' in version_info
+    except:
+        return False
+
+
+def get_windows_scp_path():
+    """Get the path to Windows scp.exe when running in WSL2."""
+    scp_path = shutil.which('scp.exe')
+    if scp_path:
+        return scp_path
+
+    # Fallback: try common Windows SCP path directly
+    fallback = '/mnt/c/Windows/System32/OpenSSH/scp.exe'
+    if os.path.exists(fallback):
+        return fallback
+
+    # If still not found, return None (will fall back to Unix scp)
+    return None
+
+
+def convert_path_for_windows(path_str):
+    """
+    Convert WSL Unix path to Windows path format if needed.
+
+    Examples:
+        /home/user/.ssh/id_rsa -> \\\\wsl$\\Ubuntu\\home\\user\\.ssh\\id_rsa
+        /mnt/c/temp/file.txt -> C:\\temp\\file.txt
+        ~/.ssh/id_rsa -> (expanded and converted)
+    """
+    if not path_str:
+        return path_str
+
+    # Expand user home directory
+    expanded = Path(path_str).expanduser()
+
+    # Convert to absolute path
+    abs_path = expanded.resolve()
+    abs_str = str(abs_path)
+
+    # Check if this is a /mnt/<drive> path (Windows drive mount)
+    if abs_str.startswith('/mnt/'):
+        # Extract drive letter and rest of path
+        # /mnt/c/temp/file.txt -> C:\temp\file.txt
+        parts = abs_str[5:].split('/', 1)  # Skip '/mnt/'
+        if len(parts) > 0 and len(parts[0]) == 1:
+            drive_letter = parts[0].upper()
+            rest_of_path = parts[1] if len(parts) > 1 else ''
+            windows_path = f"{drive_letter}:\\" + rest_of_path.replace('/', '\\')
+            return windows_path
+
+    # For WSL2, we need to use the WSL network path format
+    # Get the WSL distro name from /etc/hostname or use default
+    try:
+        with open('/etc/hostname', 'r') as f:
+            distro = f.read().strip()
+    except:
+        distro = 'Ubuntu'
+
+    # Convert /home/... to \\wsl$\distro\home\...
+    # Windows uses backslashes, but we need to escape them
+    windows_path = abs_str.replace('/', '\\')
+    windows_path = f"\\\\wsl$\\{distro}{windows_path}"
+
+    return windows_path
 
 
 def get_connection_params():
@@ -52,8 +124,21 @@ def build_scp_command(source, destination, host, user, port='22', key_path=None,
 
     SECURITY: Like ssh_exec.py, this function NEVER reads private keys.
     It only passes paths to the scp command.
+
+    WSL2: When running in WSL2, uses Windows scp.exe for proper 1Password
+    ssh-agent integration.
     """
-    scp_cmd = ['scp']
+    # Detect WSL2 and use Windows SCP if available
+    use_windows_scp = False
+    if is_wsl2():
+        windows_scp = get_windows_scp_path()
+        if windows_scp:
+            scp_cmd = [windows_scp]
+            use_windows_scp = True
+        else:
+            scp_cmd = ['scp']
+    else:
+        scp_cmd = ['scp']
 
     # Add port if not default
     if port and port != '22':
@@ -64,7 +149,14 @@ def build_scp_command(source, destination, host, user, port='22', key_path=None,
         key_file = Path(key_path).expanduser()
         if not key_file.exists():
             print(f"Warning: Key file not found: {key_file}", file=sys.stderr)
-        scp_cmd.extend(['-i', str(key_file)])
+
+        # Convert path to Windows format if using Windows SCP in WSL2
+        if use_windows_scp:
+            key_path_str = convert_path_for_windows(str(key_file))
+        else:
+            key_path_str = str(key_file)
+
+        scp_cmd.extend(['-i', key_path_str])
 
     # Recursive flag
     if recursive:
@@ -72,6 +164,16 @@ def build_scp_command(source, destination, host, user, port='22', key_path=None,
 
     # Disable strict host key checking
     scp_cmd.extend(['-o', 'StrictHostKeyChecking=accept-new'])
+
+    # Convert source/destination paths if using Windows SCP
+    # Note: Only convert local paths, not remote paths (user@host:path)
+    if use_windows_scp:
+        # Check if source is a local path (doesn't contain ':' or starts with local path)
+        if ':' not in source:
+            source = convert_path_for_windows(source)
+        # Check if destination is a local path
+        if ':' not in destination:
+            destination = convert_path_for_windows(destination)
 
     # Add source and destination
     scp_cmd.extend([source, destination])
@@ -192,10 +294,19 @@ def main():
         sys.exit(1)
 
     # Perform transfer
+    # For download: source is remote, destination is local
+    # For upload: source is local, destination is remote
+    if args.operation == 'download':
+        local_path = args.destination
+        remote_path = args.source
+    else:  # upload
+        local_path = args.source
+        remote_path = args.destination
+
     result = transfer_file(
         operation=args.operation,
-        local_path=args.source,
-        remote_path=args.destination,
+        local_path=local_path,
+        remote_path=remote_path,
         host=host,
         user=user,
         port=port,
