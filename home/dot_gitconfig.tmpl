@@ -33,3 +33,8 @@
 	# Windows-specific SSH configuration
 	sshCommand = C:/Windows/System32/OpenSSH/ssh.exe -F "{{ .chezmoi.homeDir | replace "\\" "/" }}/.ssh/config"
 {{- end }}
+
+{{- if eq .chezmoi.os "windows" }}
+[safe]
+  directory = %(prefix)///wsl.localhost/Ubuntu-24.04/home/bas/dev
+{{- end }}
