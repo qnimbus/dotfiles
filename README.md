@@ -24,7 +24,7 @@ $ eval $(op signin)
 
 **Windows**
 ```powershell
-winget install twpayne.chezmoi
+winget install twpayne.chezmoi --source winget
 ````
 
 > **⚠️ Windows users:** Enable **Developer Mode** to allow chezmoi to create symlinks.
