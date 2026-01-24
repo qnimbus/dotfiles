@@ -1,0 +1,174 @@
+#Requires -Version 5.1
+
+<#
+.SYNOPSIS
+    Installs Visual Studio Code using winget (idempotent installation).
+
+.DESCRIPTION
+    This script checks if Visual Studio Code is already installed and installs it via winget if not found.
+    The installation is idempotent and will skip if already installed.
+
+.EXAMPLE
+    .\run_onchange_before_15-install-vscode.ps1
+    Installs Visual Studio Code if not already present.
+
+.NOTES
+    Author: {{ .chezmoi.username }}
+    Machine: {{ .chezmoi.hostname }}
+    OS: {{ .chezmoi.os }}/{{ .chezmoi.arch }}
+    Version: 1.0
+    Requires: Windows with winget available
+#>
+
+{{ if and (eq .osid "windows") (not .ephemeral) (not .headless) -}}
+
+[CmdletBinding(SupportsShouldProcess)]
+param()
+
+# Configuration
+$packageId = "Microsoft.VisualStudioCode"
+
+# Script-level error handling
+$ErrorActionPreference = "Stop"
+$VerbosePreference = if ($PSBoundParameters.ContainsKey('Verbose')) { "Continue" } else { "SilentlyContinue" }
+
+# Functions
+function Write-Log {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Message,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateSet("Info", "Warning", "Error", "Success")]
+        [string]$Level = "Info"
+    )
+
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $color = switch ($Level) {
+        "Info"    { "White" }
+        "Warning" { "Yellow" }
+        "Error"   { "Red" }
+        "Success" { "Green" }
+    }
+
+    Write-Host "[$timestamp] [$Level] $Message" -ForegroundColor $color
+}
+
+function Test-Prerequisites {
+    [CmdletBinding()]
+    param()
+
+    Write-Log "Checking prerequisites..." -Level Info
+
+    # Check if winget is available
+    try {
+        $wingetVersion = & winget --version 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            throw "winget not available"
+        }
+        Write-Log "Using winget version: $wingetVersion" -Level Info
+    } catch {
+        Write-Log "winget is not available. Please install winget or the Microsoft Store version of App Installer." -Level Error
+        throw "winget prerequisite not met"
+    }
+
+    Write-Log "Prerequisites check completed." -Level Success
+}
+
+function Test-VSCode {
+    [CmdletBinding()]
+    param()
+
+    Write-Log "Checking for existing Visual Studio Code installation..." -Level Info
+
+    try {
+        $codeVersion = & code --version 2>$null | Select-Object -First 1
+        if ($LASTEXITCODE -eq 0) {
+            Write-Log "Visual Studio Code is already installed (version: $codeVersion)" -Level Success
+            return $true
+        }
+    } catch {
+        # Command not found or failed
+    }
+
+    Write-Log "Visual Studio Code not found." -Level Info
+    return $false
+}
+
+function Install-VSCode {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$PackageId
+    )
+
+    Write-Log "Installing Visual Studio Code via winget..." -Level Info
+
+    try {
+        & winget install --id $PackageId --exact --silent --accept-source-agreements --accept-package-agreements --source winget
+
+        if ($LASTEXITCODE -eq 0) {
+            Write-Log "Visual Studio Code installed successfully!" -Level Success
+
+            # Verify installation
+            try {
+                $codeVersion = & code --version 2>$null | Select-Object -First 1
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Log "Installation verified. Visual Studio Code version: $codeVersion" -Level Success
+                } else {
+                    Write-Log "Installation completed but 'code' command not immediately available. You may need to restart your shell." -Level Warning
+                }
+            } catch {
+                Write-Log "Installation completed but 'code' command not immediately available. You may need to restart your shell." -Level Warning
+            }
+        } else {
+            throw "winget install failed with exit code: $LASTEXITCODE"
+        }
+    } catch {
+        Write-Log "Error installing Visual Studio Code: $($_.Exception.Message)" -Level Error
+        throw
+    }
+}
+
+# Main execution block
+try {
+    Write-Log "========================================" -Level Info
+    Write-Log "STARTING: $($MyInvocation.MyCommand.Name)" -Level Info
+    Write-Log "========================================" -Level Info
+
+    Write-Log "Starting Visual Studio Code installation script..." -Level Info
+
+    # Check prerequisites
+    Test-Prerequisites
+
+    # Check if Visual Studio Code is already installed
+    if (Test-VSCode) {
+        Write-Log "Visual Studio Code installation is up to date." -Level Success
+    } else {
+        if ($PSCmdlet.ShouldProcess("Visual Studio Code", "Install")) {
+            Install-VSCode -PackageId $packageId
+        }
+    }
+
+    Write-Log "Visual Studio Code setup completed." -Level Success
+
+    Write-Log "========================================" -Level Success
+    Write-Log "COMPLETED: $($MyInvocation.MyCommand.Name)" -Level Success
+    Write-Log "========================================" -Level Success
+
+}
+catch {
+    Write-Log "Script failed: $($_.Exception.Message)" -Level Error
+    Write-Log "Stack trace: $($_.ScriptStackTrace)" -Level Error
+    exit 1
+}
+finally {
+    # Cleanup code goes here
+    Write-Log "Cleanup completed." -Level Info
+    Write-Log "========================================" -Level Info
+    Write-Log "EXITING: $($MyInvocation.MyCommand.Name)" -Level Info
+    Write-Log "========================================" -Level Info
+}
+
+{{- end -}}

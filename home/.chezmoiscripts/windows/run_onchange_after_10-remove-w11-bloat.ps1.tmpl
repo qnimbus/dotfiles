@@ -17,7 +17,7 @@
 
 {{ if and (eq .osid "windows") (not .ephemeral) (not .headless) -}}
 
-[CmdletBinding(SupportsShouldProcess)]
+[CmdletBinding()]
 param()
 
 # --- Self-elevate ---
@@ -62,10 +62,6 @@ function Test-Prerequisites {
 
     Write-Log "Checking prerequisites..." -Level Info
 
-    if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
-        Write-Log "This script requires administrator privileges." -Level Warning
-        throw "Administrator privileges required."
-    }
 
     Write-Log "Prerequisites check completed." -Level Success
 }
