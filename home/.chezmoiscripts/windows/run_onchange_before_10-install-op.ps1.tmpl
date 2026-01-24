@@ -82,14 +82,15 @@ function Test-1PasswordCLI {
 
     Write-Log "Checking for existing 1Password CLI installation..." -Level Info
 
+    # Use winget list for reliable detection (op command may not be in PATH)
     try {
-        $opVersion = & op --version 2>$null
+        & winget list --id AgileBits.1Password.CLI --exact 2>$null | Out-Null
         if ($LASTEXITCODE -eq 0) {
-            Write-Log "1Password CLI is already installed (version: $opVersion)" -Level Success
+            Write-Log "1Password CLI is already installed." -Level Success
             return $true
         }
     } catch {
-        # Command not found or failed
+        # Command failed
     }
 
     Write-Log "1Password CLI not found." -Level Info
