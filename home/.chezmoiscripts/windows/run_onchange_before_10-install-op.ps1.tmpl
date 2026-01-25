@@ -84,7 +84,7 @@ function Test-1PasswordCLI {
 
     # Use winget list for reliable detection (op command may not be in PATH)
     try {
-        & winget list --id AgileBits.1Password.CLI --exact 2>$null | Out-Null
+        & winget list --id AgileBits.1Password.CLI --exact --disable-interactivity --accept-source-agreements 2>$null | Out-Null
         if ($LASTEXITCODE -eq 0) {
             Write-Log "1Password CLI is already installed." -Level Success
             return $true

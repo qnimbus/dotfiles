@@ -84,7 +84,7 @@ function Test-PowerShell7 {
 
     # Use winget list for reliable detection (pwsh command may not be in PATH)
     try {
-        & winget list --id Microsoft.PowerShell --exact 2>$null | Out-Null
+        & winget list --id Microsoft.PowerShell --exact --disable-interactivity --accept-source-agreements 2>$null | Out-Null
         if ($LASTEXITCODE -eq 0) {
             Write-Log "PowerShell 7+ is already installed." -Level Success
             return $true

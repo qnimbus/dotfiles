@@ -84,7 +84,7 @@ function Test-VSCode {
 
     # Use winget list for reliable detection (code command may not be in PATH)
     try {
-        & winget list --id Microsoft.VisualStudioCode --exact 2>$null | Out-Null
+        & winget list --id Microsoft.VisualStudioCode --exact --disable-interactivity --accept-source-agreements 2>$null | Out-Null
         if ($LASTEXITCODE -eq 0) {
             Write-Log "Visual Studio Code is already installed." -Level Success
             return $true
