@@ -1,0 +1,208 @@
+#Requires -Version 5.1
+
+<#
+.SYNOPSIS
+    Installs FiraCode Nerd Font Mono via direct download (idempotent installation).
+
+.DESCRIPTION
+    This script checks if FiraCode Nerd Font Mono is already installed and downloads/installs it
+    from GitHub releases if not found. Uses Shell.Application COM object for user-level installation
+    (no admin required).
+
+.EXAMPLE
+    .\run_onchange_before_07-install-nerd-fonts.ps1
+    Installs FiraCode Nerd Font if not already present.
+
+.NOTES
+    Author: {{ .chezmoi.username }}
+    Machine: {{ .chezmoi.hostname }}
+    OS: {{ .chezmoi.os }}/{{ .chezmoi.arch }}
+    Version: 1.0
+    Source: https://github.com/ryanoasis/nerd-fonts
+#>
+
+{{ if and (eq .osid "windows") (not .ephemeral) (not .headless) -}}
+
+[CmdletBinding(SupportsShouldProcess)]
+param()
+
+# Configuration
+$nerdFontVersion = "v3.4.0"
+$downloadUrl = "https://github.com/ryanoasis/nerd-fonts/releases/download/$nerdFontVersion/FiraCode.zip"
+$fontFileName = "FiraCodeNerdFontMono-Regular.ttf"
+
+# Script-level error handling
+$ErrorActionPreference = "Stop"
+$VerbosePreference = if ($PSBoundParameters.ContainsKey('Verbose')) { "Continue" } else { "SilentlyContinue" }
+
+# Functions
+function Write-Log {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Message,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateSet("Info", "Warning", "Error", "Success")]
+        [string]$Level = "Info"
+    )
+
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $color = switch ($Level) {
+        "Info"    { "White" }
+        "Warning" { "Yellow" }
+        "Error"   { "Red" }
+        "Success" { "Green" }
+    }
+
+    Write-Host "[$timestamp] [$Level] $Message" -ForegroundColor $color
+}
+
+function Test-Prerequisites {
+    [CmdletBinding()]
+    param()
+
+    Write-Log "Checking prerequisites..." -Level Info
+
+    # Check internet connectivity
+    try {
+        $response = Invoke-WebRequest -Uri "https://github.com" -Method Head -UseBasicParsing -TimeoutSec 10
+        Write-Log "Internet connectivity verified." -Level Info
+    } catch {
+        Write-Log "No internet connectivity. Cannot download Nerd Fonts." -Level Error
+        throw "Internet connectivity prerequisite not met"
+    }
+
+    Write-Log "Prerequisites check completed." -Level Success
+}
+
+function Test-FiraCodeNerdFont {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$FontFileName
+    )
+
+    Write-Log "Checking for existing FiraCode Nerd Font installation..." -Level Info
+
+    $userFontsPath = "$env:LOCALAPPDATA\Microsoft\Windows\Fonts"
+    $systemFontsPath = "C:\Windows\Fonts"
+
+    # Check user fonts location
+    if (Test-Path "$userFontsPath\$FontFileName") {
+        Write-Log "FiraCode Nerd Font found in user fonts directory." -Level Success
+        return $true
+    }
+
+    # Check system fonts location
+    if (Test-Path "$systemFontsPath\$FontFileName") {
+        Write-Log "FiraCode Nerd Font found in system fonts directory." -Level Success
+        return $true
+    }
+
+    Write-Log "FiraCode Nerd Font not found." -Level Info
+    return $false
+}
+
+function Install-FiraCodeNerdFont {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$DownloadUrl,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Version
+    )
+
+    $tempZip = "$env:TEMP\FiraCode.zip"
+    $tempExtract = "$env:TEMP\FiraCode"
+
+    try {
+        # Download the font archive
+        Write-Log "Downloading FiraCode Nerd Font $Version..." -Level Info
+        Invoke-WebRequest -Uri $DownloadUrl -OutFile $tempZip -UseBasicParsing
+
+        if (-not (Test-Path $tempZip)) {
+            throw "Download failed - file not found at $tempZip"
+        }
+
+        Write-Log "Download completed. Extracting archive..." -Level Info
+
+        # Clean up any existing extraction directory
+        if (Test-Path $tempExtract) {
+            Remove-Item $tempExtract -Recurse -Force
+        }
+
+        # Extract the archive
+        Expand-Archive -Path $tempZip -DestinationPath $tempExtract -Force
+
+        # Install fonts using Shell.Application COM object (user-level, no admin required)
+        Write-Log "Installing fonts to user fonts directory..." -Level Info
+        $fonts = (New-Object -ComObject Shell.Application).Namespace(0x14)
+        $fontFiles = Get-ChildItem -Path $tempExtract -Include '*.ttf' -Recurse
+
+        $installedCount = 0
+        foreach ($fontFile in $fontFiles) {
+            # Only install Mono variants (as configured in Windows Terminal and VS Code)
+            if ($fontFile.Name -like "*NerdFontMono*") {
+                Write-Log "Installing: $($fontFile.Name)" -Level Info
+                $fonts.CopyHere($fontFile.FullName, 0x10)  # 0x10 = overwrite silently
+                $installedCount++
+            }
+        }
+
+        Write-Log "Installed $installedCount font files." -Level Success
+        Write-Log "FiraCode Nerd Font Mono installed successfully!" -Level Success
+
+    } finally {
+        # Cleanup temporary files
+        Write-Log "Cleaning up temporary files..." -Level Info
+        if (Test-Path $tempZip) {
+            Remove-Item $tempZip -Force -ErrorAction SilentlyContinue
+        }
+        if (Test-Path $tempExtract) {
+            Remove-Item $tempExtract -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
+# Main execution block
+try {
+    Write-Log "========================================" -Level Info
+    Write-Log "STARTING: $($MyInvocation.MyCommand.Name)" -Level Info
+    Write-Log "========================================" -Level Info
+
+    Write-Log "Starting FiraCode Nerd Font installation script..." -Level Info
+
+    # Check prerequisites
+    Test-Prerequisites
+
+    # Check if FiraCode Nerd Font is already installed
+    if (Test-FiraCodeNerdFont -FontFileName $fontFileName) {
+        Write-Log "FiraCode Nerd Font installation is up to date." -Level Success
+    } else {
+        if ($PSCmdlet.ShouldProcess("FiraCode Nerd Font", "Install")) {
+            Install-FiraCodeNerdFont -DownloadUrl $downloadUrl -Version $nerdFontVersion
+        }
+    }
+
+    Write-Log "FiraCode Nerd Font setup completed." -Level Success
+
+    Write-Log "========================================" -Level Success
+    Write-Log "COMPLETED: $($MyInvocation.MyCommand.Name)" -Level Success
+    Write-Log "========================================" -Level Success
+
+}
+catch {
+    Write-Log "Script failed: $($_.Exception.Message)" -Level Error
+    Write-Log "Stack trace: $($_.ScriptStackTrace)" -Level Error
+    exit 1
+}
+finally {
+    Write-Log "Cleanup completed." -Level Info
+    Write-Log "========================================" -Level Info
+    Write-Log "EXITING: $($MyInvocation.MyCommand.Name)" -Level Info
+    Write-Log "========================================" -Level Info
+}
+
+{{- end -}}
