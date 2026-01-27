@@ -1,0 +1,138 @@
+#Requires -Version 5.1
+
+<#
+.SYNOPSIS
+    Debloats Windows 11 using Win11Debloat.
+
+.DESCRIPTION
+    Downloads and executes Win11Debloat with default settings to remove bloatware,
+    disable telemetry, remove Bing/Copilot from search, and apply privacy-focused
+    registry tweaks.
+
+.NOTES
+    Author: {{ .chezmoi.username }}
+    Machine: {{ .chezmoi.hostname }}
+    OS: {{ .chezmoi.os }}/{{ .chezmoi.arch }}
+    Version: 2.0
+#>
+
+{{ if and (eq .osid "windows") (not .ephemeral) (not .headless) -}}
+
+[CmdletBinding()]
+param()
+
+# --- Self-elevate ---
+if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()
+  ).IsInRole([Security.Principal.WindowsBuiltInRole] 'Administrator')) {
+  $argsLine = "-ExecutionPolicy Bypass -NoProfile -File `"$($MyInvocation.MyCommand.Path)`" " + $MyInvocation.UnboundArguments
+  Start-Process -Wait -FilePath PowerShell.exe -Verb RunAs -ArgumentList $argsLine
+  exit
+}
+
+# Script-level error handling
+$ErrorActionPreference = "Stop"
+$VerbosePreference = if ($PSBoundParameters.ContainsKey('Verbose')) { "Continue" } else { "SilentlyContinue" }
+$ProgressPreference = 'SilentlyContinue'
+
+# Functions
+function Write-Log {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Message,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateSet("Info", "Warning", "Error", "Success")]
+        [string]$Level = "Info"
+    )
+
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $color = switch ($Level) {
+        "Info"    { "White" }
+        "Warning" { "Yellow" }
+        "Error"   { "Red" }
+        "Success" { "Green" }
+    }
+
+    Write-Host "[$timestamp] [$Level] $Message" -ForegroundColor $color
+}
+
+# Main execution block
+try {
+    Write-Log "========================================" -Level Info
+    Write-Log "STARTING: Windows 11 Debloat (Win11Debloat)" -Level Info
+    Write-Log "========================================" -Level Info
+
+    # Create temp file for the script
+    $tempScript = [System.IO.Path]::GetTempFileName() + ".ps1"
+    Write-Log "Downloading Win11Debloat to $tempScript" -Level Info
+
+    # Download Win11Debloat script
+    $downloadUrl = "https://win11debloat.raphi.re/"
+    try {
+        Invoke-WebRequest -Uri $downloadUrl -OutFile $tempScript -UseBasicParsing
+        Write-Log "Download completed successfully" -Level Success
+    }
+    catch {
+        Write-Log "Failed to download Win11Debloat: $($_.Exception.Message)" -Level Error
+        throw
+    }
+
+    # Verify download
+    if (-not (Test-Path $tempScript) -or (Get-Item $tempScript).Length -eq 0) {
+        throw "Downloaded script is empty or missing"
+    }
+
+    Write-Log "Executing Win11Debloat with -RunDefaults..." -Level Info
+    Write-Log "This will:" -Level Info
+    Write-Log "  - Remove 60+ bloatware apps" -Level Info
+    Write-Log "  - Disable telemetry and diagnostic data" -Level Info
+    Write-Log "  - Remove Bing/Copilot from Windows Search" -Level Info
+    Write-Log "  - Disable Windows Recall" -Level Info
+    Write-Log "  - Show file extensions in Explorer" -Level Info
+
+    # Execute Win11Debloat with RunDefaults
+    & $tempScript -RunDefaults
+
+    if ($LASTEXITCODE -and $LASTEXITCODE -ne 0) {
+        Write-Log "Win11Debloat exited with code $LASTEXITCODE" -Level Warning
+    }
+
+    Write-Log "========================================" -Level Success
+    Write-Log "COMPLETED: Windows 11 Debloat" -Level Success
+    Write-Log "========================================" -Level Success
+}
+catch {
+    Write-Log "Script failed: $($_.Exception.Message)" -Level Error
+    Write-Log "Stack trace: $($_.ScriptStackTrace)" -Level Error
+    exit 1
+}
+finally {
+    # Cleanup temp file
+    if ($tempScript -and (Test-Path $tempScript)) {
+        Remove-Item -Path $tempScript -Force -ErrorAction SilentlyContinue
+        Write-Log "Cleaned up temporary script" -Level Info
+    }
+
+    Write-Log "========================================" -Level Info
+    Write-Log "EXITING: Windows 11 Debloat" -Level Info
+    Write-Log "========================================" -Level Info
+
+    # Wait for user input or timeout
+    Write-Host ""
+    Write-Host "Press any key to close, or wait 10 seconds..." -ForegroundColor Cyan
+    $timeout = 10
+    $start = Get-Date
+    while ($true) {
+        if ($host.UI.RawUI.KeyAvailable) {
+            $null = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+            break
+        }
+        if ((Get-Date) - $start -gt (New-TimeSpan -Seconds $timeout)) {
+            break
+        }
+        Start-Sleep -Milliseconds 100
+    }
+}
+
+{{- end -}}
