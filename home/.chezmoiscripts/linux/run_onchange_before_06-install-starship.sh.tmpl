@@ -1,0 +1,196 @@
+#!/bin/bash
+
+# Script: run_onchange_before_06-install-starship.sh
+# Description: Install Starship prompt on Linux Ubuntu systems
+# Author: {{ .chezmoi.username }}
+# Machine: {{ .chezmoi.hostname }}
+# OS: {{ .chezmoi.os }}/{{ .chezmoi.arch }}
+# Version: 1.0
+
+{{ if and (eq .osid "linux-ubuntu") (not .ephemeral) (not .headless) -}}
+
+set -euo pipefail  # Exit on error, undefined vars, pipe failures
+
+# Default values
+VERBOSE=false
+INSTALL_DIR="$HOME/.local/bin"
+
+# Function to display usage
+usage() {
+    cat << EOF
+Usage: $0 [OPTIONS]
+
+Description:
+    Install Starship prompt on Linux Ubuntu systems.
+    This script installs Starship to ~/.local/bin (no sudo required).
+
+Options:
+    -v, --verbose        Enable verbose output
+    -h, --help          Display this help message
+
+Examples:
+    $0
+    $0 --verbose
+EOF
+}
+
+# Logging function
+log() {
+    local level="$1"
+    shift
+    local message="$*"
+    local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
+
+    case "$level" in
+        INFO)
+            echo "[$timestamp] [INFO] $message"
+            ;;
+        WARN)
+            echo "[$timestamp] [WARN] $message" >&2
+            ;;
+        ERROR)
+            echo "[$timestamp] [ERROR] $message" >&2
+            ;;
+        SUCCESS)
+            echo "[$timestamp] [SUCCESS] $message"
+            ;;
+        DEBUG)
+            if [[ "$VERBOSE" == "true" ]]; then
+                echo "[$timestamp] [DEBUG] $message"
+            fi
+            ;;
+    esac
+}
+
+# Function to check prerequisites
+check_prerequisites() {
+    log INFO "Checking prerequisites..."
+
+    # Check if running on Ubuntu
+    if [[ ! -f /etc/os-release ]] || ! grep -q "ubuntu" /etc/os-release; then
+        log ERROR "This script is designed for Ubuntu Linux systems"
+        exit 1
+    fi
+
+    # Check if required commands exist
+    for cmd in curl; do
+        if ! command -v "$cmd" &> /dev/null; then
+            log ERROR "Required command '$cmd' not found"
+            exit 1
+        fi
+    done
+
+    # Check if Starship is already installed
+    if command -v starship &> /dev/null; then
+        log INFO "Starship is already installed: $(starship --version)"
+        log SUCCESS "Prerequisites check completed"
+        return 1  # Signal that installation can be skipped
+    fi
+
+    log SUCCESS "Prerequisites check completed"
+    return 0
+}
+
+# Function to install Starship
+install_starship() {
+    log INFO "Creating install directory: $INSTALL_DIR"
+    mkdir -p "$INSTALL_DIR"
+
+    log INFO "Downloading Starship installer..."
+    local tmp_installer
+    tmp_installer=$(mktemp)
+    if ! curl -fsSL https://starship.rs/install.sh -o "$tmp_installer"; then
+        rm -f "$tmp_installer"
+        log ERROR "Failed to download Starship installer"
+        return 1
+    fi
+
+    log INFO "Installing Starship to $INSTALL_DIR..."
+    if ! sh "$tmp_installer" -y -b "$INSTALL_DIR"; then
+        rm -f "$tmp_installer"
+        log ERROR "Failed to install Starship"
+        return 1
+    fi
+
+    rm -f "$tmp_installer"
+    log SUCCESS "Starship installed successfully to $INSTALL_DIR"
+    return 0
+}
+
+# Main function
+main() {
+    local script_name=$(basename "$0")
+
+    log INFO "========================================"
+    log INFO "STARTING: $script_name"
+    log INFO "========================================"
+
+    # Ensure ~/.local/bin is on PATH for this script
+    case ":$PATH:" in
+        *":$INSTALL_DIR:"*) ;;
+        *) export PATH="$INSTALL_DIR:$PATH" ;;
+    esac
+
+    # Check prerequisites
+    if ! check_prerequisites; then
+        log INFO "Starship is already installed, skipping installation"
+        log SUCCESS "========================================"
+        log SUCCESS "COMPLETED: $script_name"
+        log SUCCESS "========================================"
+        return 0
+    fi
+
+    # Install Starship
+    if ! install_starship; then
+        log ERROR "Starship installation failed"
+        exit 1
+    fi
+
+    # Verify installation
+    if [[ -x "$INSTALL_DIR/starship" ]] || command -v starship &> /dev/null; then
+        log SUCCESS "Starship version: $("$INSTALL_DIR/starship" --version)"
+    else
+        log ERROR "Starship installation verification failed"
+        exit 1
+    fi
+
+    log SUCCESS "========================================"
+    log SUCCESS "COMPLETED: $script_name"
+    log SUCCESS "========================================"
+}
+
+# Cleanup function
+cleanup() {
+    local script_name=$(basename "$0")
+    log INFO "Cleanup completed"
+    log INFO "========================================"
+    log INFO "EXITING: $script_name"
+    log INFO "========================================"
+}
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -v|--verbose)
+            VERBOSE=true
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            log ERROR "Unknown option: $1"
+            usage
+            exit 1
+            ;;
+    esac
+done
+
+# Set up trap for cleanup on exit
+trap cleanup EXIT
+
+# Execute main function
+main "$@"
+
+{{ end -}}

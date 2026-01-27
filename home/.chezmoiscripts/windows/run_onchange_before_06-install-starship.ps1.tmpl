@@ -1,0 +1,175 @@
+#Requires -Version 5.1
+
+<#
+.SYNOPSIS
+    Installs Starship prompt using winget (idempotent installation).
+
+.DESCRIPTION
+    This script checks if Starship is already installed and installs it via winget if not found.
+    The installation is idempotent and will skip if already installed.
+
+.EXAMPLE
+    .\run_onchange_before_06-install-starship.ps1
+    Installs Starship if not already present.
+
+.NOTES
+    Author: {{ .chezmoi.username }}
+    Machine: {{ .chezmoi.hostname }}
+    OS: {{ .chezmoi.os }}/{{ .chezmoi.arch }}
+    Version: 1.0
+    Requires: Windows with winget available
+#>
+
+{{ if and (eq .osid "windows") (not .ephemeral) (not .headless) -}}
+
+[CmdletBinding(SupportsShouldProcess)]
+param()
+
+# Configuration
+$packageId = "Starship.Starship"
+
+# Script-level error handling
+$ErrorActionPreference = "Stop"
+$VerbosePreference = if ($PSBoundParameters.ContainsKey('Verbose')) { "Continue" } else { "SilentlyContinue" }
+
+# Functions
+function Write-Log {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Message,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateSet("Info", "Warning", "Error", "Success")]
+        [string]$Level = "Info"
+    )
+
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $color = switch ($Level) {
+        "Info"    { "White" }
+        "Warning" { "Yellow" }
+        "Error"   { "Red" }
+        "Success" { "Green" }
+    }
+
+    Write-Host "[$timestamp] [$Level] $Message" -ForegroundColor $color
+}
+
+function Test-Prerequisites {
+    [CmdletBinding()]
+    param()
+
+    Write-Log "Checking prerequisites..." -Level Info
+
+    # Check if winget is available
+    try {
+        $wingetVersion = & winget --version 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            throw "winget not available"
+        }
+        Write-Log "Using winget version: $wingetVersion" -Level Info
+    } catch {
+        Write-Log "winget is not available. Please install winget or the Microsoft Store version of App Installer." -Level Error
+        throw "winget prerequisite not met"
+    }
+
+    Write-Log "Prerequisites check completed." -Level Success
+}
+
+function Test-Starship {
+    [CmdletBinding()]
+    param()
+
+    Write-Log "Checking for existing Starship installation..." -Level Info
+
+    # Use winget list for reliable detection (starship command may not be in PATH)
+    try {
+        & winget list --id Starship.Starship --exact --disable-interactivity --accept-source-agreements 2>$null | Out-Null
+        if ($LASTEXITCODE -eq 0) {
+            Write-Log "Starship is already installed." -Level Success
+            return $true
+        }
+    } catch {
+        # Command failed
+    }
+
+    Write-Log "Starship not found." -Level Info
+    return $false
+}
+
+function Install-Starship {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$PackageId
+    )
+
+    Write-Log "Installing Starship via winget..." -Level Info
+
+    try {
+        & winget install --id $PackageId --exact --silent --accept-source-agreements --accept-package-agreements --source winget
+
+        if ($LASTEXITCODE -eq 0) {
+            Write-Log "Starship installed successfully!" -Level Success
+
+            # Verify installation
+            try {
+                $starshipVersion = & starship --version 2>$null
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Log "Installation verified. Starship version: $starshipVersion" -Level Success
+                } else {
+                    Write-Log "Installation completed but 'starship' command not immediately available. You may need to restart your shell." -Level Warning
+                }
+            } catch {
+                Write-Log "Installation completed but 'starship' command not immediately available. You may need to restart your shell." -Level Warning
+            }
+        } else {
+            throw "winget install failed with exit code: $LASTEXITCODE"
+        }
+    } catch {
+        Write-Log "Error installing Starship: $($_.Exception.Message)" -Level Error
+        throw
+    }
+}
+
+# Main execution block
+try {
+    Write-Log "========================================" -Level Info
+    Write-Log "STARTING: $($MyInvocation.MyCommand.Name)" -Level Info
+    Write-Log "========================================" -Level Info
+
+    Write-Log "Starting Starship installation script..." -Level Info
+
+    # Check prerequisites
+    Test-Prerequisites
+
+    # Check if Starship is already installed
+    if (Test-Starship) {
+        Write-Log "Starship installation is up to date." -Level Success
+    } else {
+        if ($PSCmdlet.ShouldProcess("Starship", "Install")) {
+            Install-Starship -PackageId $packageId
+        }
+    }
+
+    Write-Log "Starship setup completed." -Level Success
+
+    Write-Log "========================================" -Level Success
+    Write-Log "COMPLETED: $($MyInvocation.MyCommand.Name)" -Level Success
+    Write-Log "========================================" -Level Success
+
+}
+catch {
+    Write-Log "Script failed: $($_.Exception.Message)" -Level Error
+    Write-Log "Stack trace: $($_.ScriptStackTrace)" -Level Error
+    exit 1
+}
+finally {
+    # Cleanup code goes here
+    Write-Log "Cleanup completed." -Level Info
+    Write-Log "========================================" -Level Info
+    Write-Log "EXITING: $($MyInvocation.MyCommand.Name)" -Level Info
+    Write-Log "========================================" -Level Info
+}
+
+{{- end -}}
