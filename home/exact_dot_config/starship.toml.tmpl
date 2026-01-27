@@ -1,6 +1,8 @@
 "$schema" = 'https://starship.rs/config-schema.json'
 
 # ── Cross-platform, with gentle per-OS tweaks ────────────────────────────────
+
+
 {{- $isWindows := eq .chezmoi.os "windows" -}}
 {{- $isDarwin  := eq .chezmoi.os "darwin"  -}}
 {{- $isLinux   := eq .chezmoi.os "linux"   -}}
