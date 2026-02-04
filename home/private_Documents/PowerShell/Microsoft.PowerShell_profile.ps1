@@ -367,7 +367,7 @@ $Env:__ShellDepth = [int] $Env:__ShellDepth + 1
 Set-CtrlDHandler
 
 # Set up GITHUB_TOKEN from 1Password
-if ($false -and (-not (Test-IsVSCode))) {  # TEMPORARILY DISABLED - remove '$false -and' to re-enable
+if (-not (Test-IsVSCode)) {
     try {
         if (Get-Command op.exe -ErrorAction SilentlyContinue) {
             # Prompt user with timeout
