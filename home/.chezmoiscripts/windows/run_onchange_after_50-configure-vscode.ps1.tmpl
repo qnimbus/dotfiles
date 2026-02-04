@@ -1,3 +1,4 @@
+{{ if and (eq .osid "windows") (not .ephemeral) (not .headless) -}}
 #Requires -Version 5.1
 
 <#
@@ -70,6 +71,19 @@ function Write-Log {
     Write-Host "[$timestamp] [$Level] $Message" -ForegroundColor $color
 }
 
+function Update-PathFromRegistry {
+    [CmdletBinding()]
+    param()
+
+    Write-Log "Refreshing PATH from registry..." -Level Info
+
+    $machinePath = [Environment]::GetEnvironmentVariable("Path", "Machine")
+    $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    $env:Path = "$machinePath;$userPath"
+
+    Write-Log "PATH refreshed successfully." -Level Success
+}
+
 function Test-Prerequisites {
     [CmdletBinding()]
     param()
@@ -130,6 +144,9 @@ try {
 
     Write-Log "Starting VS Code extension installation..." -Level Info
 
+    # Refresh PATH in case VS Code was just installed
+    Update-PathFromRegistry
+
     # Check prerequisites
     Test-Prerequisites
 
@@ -176,3 +193,4 @@ finally {
     Write-Log "EXITING: $($MyInvocation.MyCommand.Name)" -Level Info
     Write-Log "========================================" -Level Info
 }
+{{- end -}}
