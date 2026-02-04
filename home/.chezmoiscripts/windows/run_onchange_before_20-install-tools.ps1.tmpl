@@ -1,0 +1,210 @@
+{{ if and (eq .osid "windows") (not .ephemeral) (not .headless) -}}
+#Requires -Version 5.1
+
+<#
+.SYNOPSIS
+    Installs multiple tools and applications using winget.
+
+.DESCRIPTION
+    This script batch installs a predefined list of packages using winget.
+    The installation is idempotent - packages already installed will be skipped.
+    Failed installations are logged but don't stop the script from continuing.
+
+.EXAMPLE
+    .\run_onchange_before_20-install-tools.ps1
+    Installs all configured packages that aren't already installed.
+
+.NOTES
+    Author: {{ .chezmoi.username }}
+    Machine: {{ .chezmoi.hostname }}
+    OS: {{ .chezmoi.os }}/{{ .chezmoi.arch }}
+    Version: 1.0
+    Requires: Windows with winget available
+#>
+
+[CmdletBinding(SupportsShouldProcess)]
+param()
+
+# Script-level error handling
+$ErrorActionPreference = "Stop"
+$VerbosePreference = if ($PSBoundParameters.ContainsKey('Verbose')) { "Continue" } else { "SilentlyContinue" }
+
+# Package configuration - add packages here
+# Use 'winget search "app name"' to find the correct package ID
+$Packages = @(
+    @{ Id = "Git.Git"; Name = "Git" },
+    @{ Id = "GPSoftware.DirectoryOpus"; Name = "Directory Opus" }
+)
+
+# Functions
+function Write-Log {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Message,
+
+        [Parameter(Mandatory = $false)]
+        [ValidateSet("Info", "Warning", "Error", "Success")]
+        [string]$Level = "Info"
+    )
+
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $color = switch ($Level) {
+        "Info"    { "White" }
+        "Warning" { "Yellow" }
+        "Error"   { "Red" }
+        "Success" { "Green" }
+    }
+
+    Write-Host "[$timestamp] [$Level] $Message" -ForegroundColor $color
+}
+
+function Update-PathFromRegistry {
+    [CmdletBinding()]
+    param()
+
+    Write-Log "Refreshing PATH from registry..." -Level Info
+
+    $machinePath = [Environment]::GetEnvironmentVariable("Path", "Machine")
+    $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    $env:Path = "$machinePath;$userPath"
+
+    Write-Log "PATH refreshed successfully." -Level Success
+}
+
+function Test-Prerequisites {
+    [CmdletBinding()]
+    param()
+
+    Write-Log "Checking prerequisites..." -Level Info
+
+    # Check if winget is available
+    try {
+        $wingetVersion = & winget --version 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            throw "winget not available"
+        }
+        Write-Log "Using winget version: $wingetVersion" -Level Info
+    } catch {
+        Write-Log "winget is not available. Please install winget or the Microsoft Store version of App Installer." -Level Error
+        throw "winget prerequisite not met"
+    }
+
+    Write-Log "Prerequisites check completed." -Level Success
+}
+
+function Test-PackageInstalled {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$PackageId
+    )
+
+    try {
+        & winget list --id $PackageId --exact --disable-interactivity --accept-source-agreements 2>$null | Out-Null
+        return ($LASTEXITCODE -eq 0)
+    } catch {
+        return $false
+    }
+}
+
+function Install-Package {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$PackageId,
+
+        [Parameter(Mandatory = $true)]
+        [string]$PackageName
+    )
+
+    Write-Log "Installing $PackageName ($PackageId)..." -Level Info
+
+    try {
+        & winget install --id $PackageId --exact --silent --accept-source-agreements --accept-package-agreements --source winget
+
+        if ($LASTEXITCODE -eq 0) {
+            Write-Log "Successfully installed $PackageName" -Level Success
+            return $true
+        } else {
+            Write-Log "Failed to install $PackageName (exit code: $LASTEXITCODE)" -Level Warning
+            return $false
+        }
+    } catch {
+        Write-Log "Error installing ${PackageName}: $($_.Exception.Message)" -Level Error
+        return $false
+    }
+}
+
+# Main execution block
+try {
+    Write-Log "========================================" -Level Info
+    Write-Log "STARTING: $($MyInvocation.MyCommand.Name)" -Level Info
+    Write-Log "========================================" -Level Info
+
+    Write-Log "Starting batch package installation..." -Level Info
+
+    # Check prerequisites
+    Test-Prerequisites
+
+    # Refresh PATH in case previous scripts installed something
+    Update-PathFromRegistry
+
+    # Install packages
+    Write-Log "Processing $($Packages.Count) packages..." -Level Info
+
+    $successCount = 0
+    $skippedCount = 0
+    $failureCount = 0
+
+    foreach ($package in $Packages) {
+        if ($PSCmdlet.ShouldProcess($package.Name, "Install Package")) {
+            # Check if already installed
+            if (Test-PackageInstalled -PackageId $package.Id) {
+                Write-Log "$($package.Name) is already installed, skipping." -Level Info
+                $skippedCount++
+                continue
+            }
+
+            # Install the package
+            $result = Install-Package -PackageId $package.Id -PackageName $package.Name
+            if ($result) {
+                $successCount++
+            } else {
+                $failureCount++
+            }
+        }
+    }
+
+    # Refresh PATH after installations
+    Update-PathFromRegistry
+
+    # Summary
+    Write-Log "========================================" -Level Info
+    Write-Log "Installation Summary:" -Level Info
+    Write-Log "  Installed: $successCount" -Level Success
+    Write-Log "  Skipped (already installed): $skippedCount" -Level Info
+    Write-Log "  Failed: $failureCount" -Level $(if ($failureCount -gt 0) { "Warning" } else { "Info" })
+    Write-Log "========================================" -Level Info
+
+    if ($failureCount -gt 0) {
+        Write-Log "$failureCount package(s) failed to install. Check the logs above for details." -Level Warning
+    }
+
+    Write-Log "========================================" -Level Success
+    Write-Log "COMPLETED: $($MyInvocation.MyCommand.Name)" -Level Success
+    Write-Log "========================================" -Level Success
+}
+catch {
+    Write-Log "Script failed: $($_.Exception.Message)" -Level Error
+    Write-Log "Stack trace: $($_.ScriptStackTrace)" -Level Error
+    exit 1
+}
+finally {
+    # Cleanup code goes here
+    Write-Log "Cleanup completed." -Level Info
+    Write-Log "========================================" -Level Info
+    Write-Log "EXITING: $($MyInvocation.MyCommand.Name)" -Level Info
+    Write-Log "========================================" -Level Info
+}
+{{- end -}}
