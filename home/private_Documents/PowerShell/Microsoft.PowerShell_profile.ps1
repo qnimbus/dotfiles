@@ -410,7 +410,7 @@ if (-not (Test-IsVSCode) -and $false) {
         Write-Host "⚠ Error loading GITHUB_TOKEN from 1Password: $($_.Exception.Message)" -ForegroundColor Yellow
     }
 } else {
-    Write-Host "Skipping GitHub token setup (VS Code detected)" -ForegroundColor Gray
+    Write-Host "Skipping GitHub token setup" -ForegroundColor Gray
 }
 
 ################################################################################
