@@ -6,7 +6,7 @@
     "copyOnSelect": false,
     "defaultProfile": "{574e775e-4f2a-5b96-ac1e-a2962a402336}",
     "firstWindowPreference": "defaultProfile",
-    "keybindings": 
+    "keybindings":
     [
         {
             "id": "Terminal.CopyToClipboard",
@@ -25,28 +25,28 @@
             "keys": "alt+shift+d"
         }
     ],
-    "newTabMenu": 
+    "newTabMenu":
     [
         {
             "type": "remainingProfiles"
         }
     ],
-    "profiles": 
+    "profiles":
     {
-        "defaults": 
+        "defaults":
         {
-            "bellStyle": 
+            "bellStyle":
             [
                 "window",
                 "taskbar"
             ],
             "colorScheme": "One Half Dark",
-            "font": 
+            "font":
             {
                 "face": "FiraCode Nerd Font Mono"
             }
         },
-        "list": 
+        "list":
         [
             {
                 "commandline": "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
@@ -73,10 +73,12 @@
                 "source": "Windows.Terminal.PowershellCore"
             },
             {
-                "guid": "{d8e96812-b789-5068-a5ae-10b2fb53e95f}",
+                "commandline": "ubuntu2404.exe",
+                "guid": "{70fea691-fea4-4a99-a367-174d6f184d36}",
                 "hidden": false,
-                "name": "Ubuntu 24.04.1 LTS",
-                "source": "CanonicalGroupLimited.Ubuntu24.04LTS_79rhkp1fndgsc"
+                "icon": "https://assets.ubuntu.com/v1/49a1a858-favicon-32x32.png",
+                "name": "Ubuntu 24.04 LTS",
+                "tabTitle": "Ubuntu 24.04 LTS"
             }
         ]
     },
