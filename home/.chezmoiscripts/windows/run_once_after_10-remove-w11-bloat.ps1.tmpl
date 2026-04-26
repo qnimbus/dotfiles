@@ -63,14 +63,18 @@ try {
     Write-Log "STARTING: Windows 11 Debloat (Win11Debloat)" -Level Info
     Write-Log "========================================" -Level Info
 
-    # Create temp file for the script
-    $tempScript = [System.IO.Path]::GetTempFileName() + ".ps1"
-    Write-Log "Downloading Win11Debloat to $tempScript" -Level Info
+    # Create temp directory for the full Win11Debloat package
+    $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) "Win11Debloat_$(Get-Random)"
+    New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
+    $zipPath = Join-Path $tempDir "Win11Debloat.zip"
+    Write-Log "Downloading Win11Debloat package to $tempDir" -Level Info
 
-    # Download Win11Debloat script
-    $downloadUrl = "https://win11debloat.raphi.re/"
+    # Must download the full ZIP: Win11Debloat.ps1 alone fails with "unable to find required files"
+    # because it imports from a pkg/ subdirectory that only exists in the full repo.
+    # The project website (win11debloat.raphi.re) returns HTML, not a script — use the raw GitHub archive.
+    $downloadUrl = "https://github.com/Raphire/Win11Debloat/archive/refs/heads/master.zip"
     try {
-        Invoke-WebRequest -Uri $downloadUrl -OutFile $tempScript -UseBasicParsing
+        Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath -UseBasicParsing
         Write-Log "Download completed successfully" -Level Success
     }
     catch {
@@ -78,9 +82,12 @@ try {
         throw
     }
 
-    # Verify download
-    if (-not (Test-Path $tempScript) -or (Get-Item $tempScript).Length -eq 0) {
-        throw "Downloaded script is empty or missing"
+    # Extract ZIP
+    Expand-Archive -Path $zipPath -DestinationPath $tempDir -Force
+    $tempScript = Join-Path $tempDir "Win11Debloat-master\Win11Debloat.ps1"
+
+    if (-not (Test-Path $tempScript)) {
+        throw "Win11Debloat.ps1 not found after extraction"
     }
 
     Write-Log "Executing Win11Debloat with -RunDefaults..." -Level Info
@@ -91,8 +98,11 @@ try {
     Write-Log "  - Disable Windows Recall" -Level Info
     Write-Log "  - Show file extensions in Explorer" -Level Info
 
-    # Execute Win11Debloat with RunDefaults
+    # Reset to Continue before invoking: child scripts inherit $ErrorActionPreference, and with Stop
+    # any stderr from reg.exe (including "The operation completed successfully.") becomes a terminating error.
+    $ErrorActionPreference = "Continue"
     & $tempScript -RunDefaults
+    $ErrorActionPreference = "Stop"
 
     if ($LASTEXITCODE -and $LASTEXITCODE -ne 0) {
         Write-Log "Win11Debloat exited with code $LASTEXITCODE" -Level Warning
@@ -108,10 +118,10 @@ catch {
     exit 1
 }
 finally {
-    # Cleanup temp file
-    if ($tempScript -and (Test-Path $tempScript)) {
-        Remove-Item -Path $tempScript -Force -ErrorAction SilentlyContinue
-        Write-Log "Cleaned up temporary script" -Level Info
+    # Cleanup temp directory
+    if ($tempDir -and (Test-Path $tempDir)) {
+        Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
+        Write-Log "Cleaned up temporary files" -Level Info
     }
 
     Write-Log "========================================" -Level Info
