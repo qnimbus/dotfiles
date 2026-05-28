@@ -77,6 +77,12 @@ function Show-EnvironmentInfo {
     $envVars | Format-Table Name, Value -AutoSize
 }
 
+# Update management functions disabled: winget/scoop updates are now handled
+# by UniGetUI (WingetUI), which provides a dedicated GUI for package management.
+# Keeping these defined would give false confidence that forcecheck/resetcheck
+# still do something meaningful.
+if ($false) {
+
 # Update Management Functions
 function Invoke-ForceUpdateCheck {
     <#
@@ -142,6 +148,8 @@ function Show-DailyCheckStatus {
     Write-Host "VSCode detected: $(Test-IsVSCode)" -ForegroundColor $(if (Test-IsVSCode) { 'Yellow' } else { 'Green' })
     Write-Host "Shell depth: $Env:__ShellDepth" -ForegroundColor Cyan
 }
+
+} # end if ($false) - update management functions
 
 # Utility Functions
 function which {
@@ -414,8 +422,12 @@ if (-not (Test-IsVSCode) -and $false) {
 }
 
 ################################################################################
-# DAILY UPDATE CHECK LOGIC
+# DAILY UPDATE CHECK LOGIC (DISABLED)
+# Winget and scoop update checks have been replaced by UniGetUI (WingetUI),
+# which manages package updates through a GUI and handles both package managers
+# centrally. Shell-startup prompts are no longer needed.
 ################################################################################
+if ($false) {
 
 # Configuration
 $dailyCheckFile = Join-Path (Split-Path $PROFILE -Parent) ".lastcheck"
@@ -646,6 +658,8 @@ if ($forceUpdate -Or ($isFirstShell -And $isNotVSCode -And $isDailyCheckDue)) {
     Write-Host "To force a re-run of this profile script, type: forcecheck" -ForegroundColor Gray
 }
 
+} # end if ($false) - daily update check logic
+
 ################################################################################
 # ALIASES AND SHORTCUTS
 ################################################################################
@@ -660,10 +674,11 @@ Set-Alias grep findstr
 Set-Alias cz chezmoi
 
 # Utility aliases
-Set-Alias forcecheck Invoke-ForceUpdateCheck
 Set-Alias envinfo Show-EnvironmentInfo
-Set-Alias checkstatus Show-DailyCheckStatus
-Set-Alias resetcheck Reset-DailyCheckTimer
+# Disabled - UniGetUI handles package updates; these aliases have no effect
+# Set-Alias forcecheck Invoke-ForceUpdateCheck
+# Set-Alias checkstatus Show-DailyCheckStatus
+# Set-Alias resetcheck Reset-DailyCheckTimer
 
 ################################################################################
 # PROMPT SETUP
