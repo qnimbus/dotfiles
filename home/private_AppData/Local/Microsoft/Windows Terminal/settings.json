@@ -73,12 +73,16 @@
                 "source": "Windows.Terminal.PowershellCore"
             },
             {
-                "commandline": "ubuntu2404.exe",
-                "guid": "{70fea691-fea4-4a99-a367-174d6f184d36}",
+                "guid": "{acbafd15-cbbb-5bb3-8a61-bed446ff4b83}",
                 "hidden": false,
-                "icon": "https://assets.ubuntu.com/v1/49a1a858-favicon-32x32.png",
                 "name": "Ubuntu 24.04 LTS",
-                "tabTitle": "Ubuntu 24.04 LTS"
+                "source": "Windows.Terminal.Wsl"
+            },
+            {
+                "guid": "{4591b1ea-d67c-5e3c-9582-dbaf76e5348e}",
+                "hidden": false,
+                "name": "Ubuntu-24.04",
+                "source": "Microsoft.WSL"
             }
         ]
     },
