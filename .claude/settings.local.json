@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\bas\\\\.dotfiles\" -Force)",
+      "Bash(Sort-Object -Property Name)",
+      "Bash(Format-Table -AutoSize)",
+      "WebFetch(domain:www.chezmoi.io)"
+    ]
+  },
+  "enabledMcpjsonServers": ["context7"]
+}
