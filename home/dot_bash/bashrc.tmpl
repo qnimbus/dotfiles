@@ -119,6 +119,7 @@ if ! shopt -oq posix; then
 fi
 
 export PATH="$HOME/.local/bin:$PATH"
+export OP_SERVICE_ACCOUNT_TOKEN="{{ if not .ephemeral }}{{ onepasswordRead "op://homelab/1Password service account/password" }}{{ end }}"
 
 # For aliases
 source "${HOME%/}/.local/bin/aliases.sh"
