@@ -122,6 +122,13 @@ export PATH="$HOME/.local/bin:$PATH"
 {{ if not .ephemeral -}}
 export OP_SERVICE_ACCOUNT_TOKEN="{{ onepasswordRead "op://homelab/1Password service account/password" }}"
 {{- end }}
+{{ if and (eq .chezmoi.os "windows") (not .wsl) -}}
+# Git Bash on Windows uses the OpenSSH binary which looks for a Unix socket via
+# SSH_AUTH_SOCK. The 1Password SSH agent exposes itself as a Windows named pipe
+# at this path; without this, SSH silently falls back to reading .pub files and
+# fails with "invalid format".
+export SSH_AUTH_SOCK="//./pipe/openssh-ssh-agent"
+{{- end }}
 
 # For aliases
 source "${HOME%/}/.local/bin/aliases.sh"

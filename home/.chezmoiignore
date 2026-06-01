@@ -15,9 +15,14 @@ README.md
 {{ if ne .chezmoi.os "linux" }}
 *.sh
 **/*/*.sh
-
-.bash
 .chezmoiscripts/linux/**
+{{- end }}
+
+{{ if and (ne .chezmoi.os "linux") (ne .chezmoi.os "windows") }}
+# .bash/ is excluded everywhere except Linux and Windows. On Windows, Git Bash
+# reads ~/.bashrc (a symlink → ~/.bash/bashrc), so the directory must be
+# deployed. On macOS and other platforms there is no Git Bash, so skip it.
+.bash
 {{- end }}
 
 {{ if ne .chezmoi.os "windows" }}

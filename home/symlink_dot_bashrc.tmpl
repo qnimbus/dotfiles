@@ -1,3 +1,11 @@
-{{ if and (eq .osid "linux-ubuntu") (not .headless) -}}
+{{/*
+  Create ~/.bashrc as a symlink to ~/.bash/bashrc on:
+    - Linux (Ubuntu, interactive): the canonical setup on this platform.
+    - Windows (non-WSL): makes Git Bash pick up the shared config, including
+      the SSH_AUTH_SOCK export that routes OpenSSH to the 1Password agent.
+  WSL is excluded because WSL's own Ubuntu instance is covered by the Linux
+  arm above; the Windows arm is only for native Git Bash sessions.
+*/}}
+{{ if or (and (eq .osid "linux-ubuntu") (not .headless)) (and (eq .chezmoi.os "windows") (not .wsl)) -}}
 .bash/bashrc
 {{- end }}
