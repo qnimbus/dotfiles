@@ -43,6 +43,11 @@ edit:
   command: code
   args: ["--wait","--reuse-window"]
 
+{{- if $isWSL }}
+onepassword:
+  command: "op.exe"
+{{- end }}
+
 data:
   ephemeral: {{ $ephemeral }}
   headless: {{ $headless }}
