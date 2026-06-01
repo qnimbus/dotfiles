@@ -120,7 +120,6 @@ fi
 
 export PATH="$HOME/.local/bin:$PATH"
 {{ if not .ephemeral -}}
-#export OP_SERVICE_ACCOUNT_TOKEN="{{ onepasswordRead "op://homelab/1Password service account/password" }}"
 export OP_SERVICE_ACCOUNT_TOKEN="$(powershell.exe -Command 'echo $env:OP_SERVICE_ACCOUNT_TOKEN' | tr -d '\r')"
 {{- end }}
 {{ if and (eq .chezmoi.os "windows") (not .wsl) -}}
