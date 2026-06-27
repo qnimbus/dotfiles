@@ -91,12 +91,14 @@ def convert_path_for_windows(path_str):
             return windows_path
 
     # For WSL2, we need to use the WSL network path format
-    # Get the WSL distro name from /etc/hostname or use default
-    try:
-        with open('/etc/hostname', 'r') as f:
-            distro = f.read().strip()
-    except:
-        distro = 'Ubuntu'
+    # WSL_DISTRO_NAME is set by WSL2 and matches the Windows-registered distro name
+    distro = os.getenv('WSL_DISTRO_NAME')
+    if not distro:
+        try:
+            with open('/etc/hostname', 'r') as f:
+                distro = f.read().strip()
+        except Exception:
+            distro = 'Ubuntu'
 
     # Convert /home/... to \\wsl$\distro\home\...
     # Windows uses backslashes, but we need to escape them
