@@ -120,17 +120,12 @@ fi
 
 export PATH="$HOME/.local/bin:$PATH"
 {{ if not .ephemeral -}}
-# export OP_SERVICE_ACCOUNT_TOKEN="$(powershell.exe -Command 'echo $env:OP_SERVICE_ACCOUNT_TOKEN' | tr -d '\r')"
-# export OS_APPLICATION_CREDENTIAL_ID="$(op.exe read 'op://homelab/leafcloud-openstack-cli/APPLICATION_CREDENTIAL_ID' | tr -d '\r')"
-# export OS_APPLICATION_CREDENTIAL_SECRET="$(op.exe read 'op://homelab/leafcloud-openstack-cli/APPLICATION_CREDENTIAL_SECRET' | tr -d '\r')"
 
 export OP_SERVICE_ACCOUNT_TOKEN="$(timeout -k 2s 5s powershell.exe -Command 'echo $env:OP_SERVICE_ACCOUNT_TOKEN' 2>/dev/null | tr -d '\r')"
 [ -z "$OP_SERVICE_ACCOUNT_TOKEN" ] && echo "warning: OP_SERVICE_ACCOUNT_TOKEN fetch timed out or failed" >&2
 
-export OS_APPLICATION_CREDENTIAL_ID="$(timeout -k 2s 5s op.exe read 'op://homelab/leafcloud-openstack-cli/APPLICATION_CREDENTIAL_ID' 2>/dev/null | tr -d '\r')"
-export OS_APPLICATION_CREDENTIAL_SECRET="$(timeout -k 2s 5s op.exe read 'op://homelab/leafcloud-openstack-cli/APPLICATION_CREDENTIAL_SECRET' 2>/dev/null | tr -d '\r')"
-[ -z "$OS_APPLICATION_CREDENTIAL_ID" ] || [ -z "$OS_APPLICATION_CREDENTIAL_SECRET" ] && echo "warning: LeafCloud OpenStack credential fetch timed out or failed" >&2
 {{- end }}
+
 {{ if and (eq .chezmoi.os "windows") (not .wsl) -}}
 # Git Bash on Windows uses the OpenSSH binary which looks for a Unix socket via
 # SSH_AUTH_SOCK. The 1Password SSH agent exposes itself as a Windows named pipe
