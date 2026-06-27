@@ -139,6 +139,11 @@ export OS_APPLICATION_CREDENTIAL_SECRET="$(timeout -k 2s 5s op.exe read 'op://ho
 export SSH_AUTH_SOCK="//./pipe/openssh-ssh-agent"
 {{- end }}
 
+{{ if and .wsl (not .ephemeral) -}}
+alias ssh-add='ssh-add.exe'
+alias ssh='ssh.exe'
+{{- end }}
+
 # For aliases
 source "${HOME%/}/.local/bin/aliases.sh"
 
