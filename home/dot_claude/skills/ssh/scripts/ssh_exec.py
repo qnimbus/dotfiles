@@ -93,12 +93,14 @@ def convert_path_for_windows(path_str):
             return windows_path
 
     # For WSL2, we need to use the WSL network path format
-    # Get the WSL distro name from /etc/hostname or use default
-    try:
-        with open('/etc/hostname', 'r') as f:
-            distro = f.read().strip()
-    except:
-        distro = 'Ubuntu'
+    # WSL_DISTRO_NAME is set by WSL2 and matches the Windows-registered distro name
+    distro = os.getenv('WSL_DISTRO_NAME')
+    if not distro:
+        try:
+            with open('/etc/hostname', 'r') as f:
+                distro = f.read().strip()
+        except Exception:
+            distro = 'Ubuntu'
 
     # Convert /home/... to \\wsl$\distro\home\...
     # Windows uses backslashes, but we need to escape them
@@ -171,7 +173,7 @@ def build_ssh_command(command, host, user, port='22', key_path=None, password=No
     return ssh_cmd, password
 
 
-def execute_ssh_command(command, host, user, port='22', key_path=None, password=None, timeout=300):
+def execute_ssh_command(command, host, user, port='22', key_path=None, password=None, timeout=300, capture=False):
     """
     Execute SSH command and return results.
 
@@ -183,6 +185,9 @@ def execute_ssh_command(command, host, user, port='22', key_path=None, password=
         key_path: Path to private key (passed to ssh, never read)
         password: Password (passed to sshpass if needed, never logged)
         timeout: Command timeout in seconds
+        capture: If True, buffer stdout/stderr and return them in the result dict.
+                 If False (default), stream output directly to the terminal in real time.
+                 Always use capture=True when you need the output as a string (e.g. --json mode).
 
     Returns:
         dict with stdout, stderr, exit_code
@@ -209,16 +214,16 @@ def execute_ssh_command(command, host, user, port='22', key_path=None, password=
     try:
         result = subprocess.run(
             ssh_cmd,
-            capture_output=True,
-            text=True,
+            capture_output=capture,
+            text=capture,
             timeout=timeout,
             env=env
         )
 
         return {
             'success': result.returncode == 0,
-            'stdout': result.stdout,
-            'stderr': result.stderr,
+            'stdout': result.stdout if capture else '',
+            'stderr': result.stderr if capture else '',
             'exit_code': result.returncode
         }
 
@@ -275,7 +280,7 @@ def main():
         print("  python3 ssh_exec.py 'ls -la'", file=sys.stderr)
         sys.exit(1)
 
-    # Execute command
+    # Execute command — only capture output when --json is requested; otherwise stream
     result = execute_ssh_command(
         args.command,
         host=host,
@@ -283,22 +288,17 @@ def main():
         port=port,
         key_path=key_path,
         password=password,
-        timeout=args.timeout
+        timeout=args.timeout,
+        capture=args.json,
     )
 
     # Output results
     if args.json:
         print(json.dumps(result, indent=2))
     else:
-        if result['success']:
-            print(result['stdout'], end='')
-            if result['stderr']:
-                print(result['stderr'], file=sys.stderr, end='')
-        else:
+        if not result['success']:
             if 'error' in result:
                 print(f"Error: {result['error']}", file=sys.stderr)
-            if result['stderr']:
-                print(result['stderr'], file=sys.stderr)
             sys.exit(result['exit_code'] if result['exit_code'] != -1 else 1)
 
 
