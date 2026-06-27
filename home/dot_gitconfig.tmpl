@@ -26,6 +26,12 @@
 	# Line-ending normalization (cross-platform safe)
 	autocrlf = input
 	eol = lf
+	
+
+{{ if and .wsl (not .ephemeral) -}}
+	# WSL-specific SSH configuration
+	sshCommand = ssh.exe
+{{- end }}
 
 {{- if eq .chezmoi.os "windows" }}
 	# Windows-specific SSH configuration
