@@ -124,6 +124,9 @@ export PATH="$HOME/.local/bin:$PATH"
 export OP_SERVICE_ACCOUNT_TOKEN="$(timeout -k 2s 5s powershell.exe -Command 'echo $env:OP_SERVICE_ACCOUNT_TOKEN' 2>/dev/null | tr -d '\r')"
 [ -z "$OP_SERVICE_ACCOUNT_TOKEN" ] && echo "warning: OP_SERVICE_ACCOUNT_TOKEN fetch timed out or failed" >&2
 
+export GH_TOKEN="$(timeout -k 2s 5s powershell.exe -Command 'echo $env:GH_TOKEN' 2>/dev/null | tr -d '\r')"
+[ -z "$GH_TOKEN" ] && echo "warning: GH_TOKEN fetch timed out or failed" >&2
+
 {{- end }}
 
 {{ if and (eq .chezmoi.os "windows") (not .wsl) -}}
