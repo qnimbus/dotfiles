@@ -8,9 +8,9 @@
 
 [gpg "ssh"]
 {{- if eq .chezmoi.os "windows" }}
-  program = "C:/Users/bas/AppData/Local/Microsoft/WindowsApps/op-ssh-sign.exe"
+  program = "C:/Program Files/1Password/app/8/op-ssh-sign.exe"
 {{- else}}
-  program = "/mnt/c/Users/bas/AppData/Local/Microsoft/WindowsApps/op-ssh-sign-wsl.exe"
+  program = "/mnt/c/Program Files/1Password/app/8/op-ssh-sign-wsl"
 {{- end }}
 
 [worktree]
