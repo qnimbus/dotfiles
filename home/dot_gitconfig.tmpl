@@ -37,6 +37,14 @@
 {{ if and .wsl (not .ephemeral) -}}
 	# WSL-specific SSH configuration
 	sshCommand = ssh.exe
+
+# HTTPS remotes authenticate through gh (what `gh auth setup-git` writes)
+[credential "https://github.com"]
+	helper =
+	helper = !/usr/bin/gh auth git-credential
+[credential "https://gist.github.com"]
+	helper =
+	helper = !/usr/bin/gh auth git-credential
 {{- end }}
 
 {{- if eq .chezmoi.os "windows" }}

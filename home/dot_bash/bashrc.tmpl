@@ -138,8 +138,35 @@ export SSH_AUTH_SOCK="//./pipe/openssh-ssh-agent"
 {{- end }}
 
 {{ if and .wsl (not .ephemeral) -}}
-alias ssh-add='ssh-add.exe'
-alias ssh='ssh.exe'
+# Bridge the Windows 1Password SSH agent (named pipe) into WSL as a Unix
+# socket, so the Linux ssh has the keys too — including in scripts, just
+# recipes and Ansible, where an `ssh=ssh.exe` alias doesn't apply.
+# Needs socat (apt) and npiperelay.exe (winget) on the Windows PATH.
+if command -v socat >/dev/null && command -v npiperelay.exe >/dev/null; then
+    export SSH_AUTH_SOCK="$HOME/.ssh/agent.sock"
+    # ssh-add exits 2 when it can't reach an agent: (re)start the relay.
+    if [ "$(/usr/bin/ssh-add -l >/dev/null 2>&1; echo $?)" = 2 ]; then
+        rm -f "$SSH_AUTH_SOCK"
+        (setsid socat UNIX-LISTEN:"$SSH_AUTH_SOCK",fork \
+            EXEC:"npiperelay.exe -ei -s //./pipe/openssh-ssh-agent",nofork &) >/dev/null 2>&1
+    fi
+    # With every 1Password key in the agent, ssh offers them in turn and hits
+    # the server's MaxAuthTries. 1Password's generated per-host config pins one
+    # key per host, but ssh rejects it in place (0777 on /mnt/c), so mirror it
+    # with sane modes; its ~/.ssh/1Password/*.pub paths then resolve here too.
+    OP_SSH_SRC="/mnt/c/Users/{{ .chezmoi.username }}/.ssh/1Password"
+    if [ -f "$OP_SSH_SRC/config" ] && [ "$OP_SSH_SRC/config" -nt "$HOME/.ssh/1Password/config" ]; then
+        rm -rf "$HOME/.ssh/1Password"
+        mkdir -p -m 700 "$HOME/.ssh/1Password"
+        cp "$OP_SSH_SRC"/config "$OP_SSH_SRC"/*.pub "$HOME/.ssh/1Password/"
+        chmod 600 "$HOME/.ssh/1Password"/*
+    fi
+    unset OP_SSH_SRC
+else
+    echo "warning: socat or npiperelay.exe missing; falling back to ssh.exe aliases" >&2
+    alias ssh-add='ssh-add.exe'
+    alias ssh='ssh.exe'
+fi
 {{- end }}
 
 # For aliases

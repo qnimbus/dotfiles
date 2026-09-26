@@ -1,4 +1,4 @@
-{{- if (eq .chezmoi.os "windows") }}
+{{- if or (eq .chezmoi.os "windows") .wsl }}
 Include ~/.ssh/1Password/config
 {{- end }}
 
