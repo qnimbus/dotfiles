@@ -63,9 +63,26 @@ confirm() {
 
 encode_path() { echo "${1//[^A-Za-z0-9]/-}"; }
 
+# Find an existing directory whose path encodes to "$2", walking down from "$1"
+# one path component at a time and backtracking on dead ends.
+resolve_on_disk() {
+  local base="$1" rest="${2#-}" name enc
+  while IFS= read -r name; do
+    enc=$(encode_path "$name")
+    if [[ $rest == "$enc" ]]; then
+      echo "$base/$name"
+      return 0
+    elif [[ $rest == "$enc-"* ]] && resolve_on_disk "$base/$name" "${rest#"$enc"}"; then
+      return 0
+    fi
+  done < <(find "${base:-/}" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' 2>/dev/null)
+  return 1
+}
+
 # Recover a project's real path from its folder name. The encoding is lossy,
-# so look for a known path that encodes to the same name: first the keys of
-# ~/.claude.json, then the "cwd" fields in the folder's transcripts.
+# so look for a path that encodes to the same name: first the keys of
+# ~/.claude.json, then the "cwd" fields in the folder's transcripts, then
+# directories that exist on disk.
 decode_dir() {
   local dir="$1" candidate
   if [[ -f $CLAUDE_JSON ]]; then
@@ -74,11 +91,12 @@ decode_dir() {
     done < <(jq -r '.projects // {} | keys[]' "$CLAUDE_JSON")
   fi
   local files=("$CLAUDE_DIR/projects/$dir"/*.jsonl)
-  [[ -e ${files[0]} ]] || return 0
-  while IFS= read -r candidate; do
-    [[ $(encode_path "$candidate") == "$dir" ]] && { echo "$candidate"; return; }
-  done < <(grep -ho '"cwd":"[^"]*"' "${files[@]}" | sort -u | sed 's/^"cwd":"//; s/"$//')
-  return 0
+  if [[ -e ${files[0]} ]]; then
+    while IFS= read -r candidate; do
+      [[ $(encode_path "$candidate") == "$dir" ]] && { echo "$candidate"; return; }
+    done < <(grep -ho '"cwd":"[^"]*"' "${files[@]}" | sort -u | sed 's/^"cwd":"//; s/"$//')
+  fi
+  resolve_on_disk "" "$dir" || true
 }
 
 ensure_claude_stopped() {
