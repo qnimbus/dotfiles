@@ -16,6 +16,7 @@ README.md
 *.sh
 **/*/*.sh
 .chezmoiscripts/linux/**
+.local/bin/claude-migrate
 {{- end }}
 
 {{ if and (ne .chezmoi.os "linux") (ne .chezmoi.os "windows") }}

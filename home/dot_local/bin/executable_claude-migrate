@@ -1,0 +1,371 @@
+#!/usr/bin/env bash
+# claude-migrate — back up, restore and remap a Claude Code setup across machines.
+#
+# Project folders in ~/.claude/projects/ are named after the project's absolute
+# path (every non-alphanumeric character becomes "-"), and ~/.claude.json keys
+# per-project state by that path. Restoring to a different path therefore needs
+# both renamed; `restore` and `remap` do that.
+
+# shellcheck disable=SC2016  # jq programs are single-quoted on purpose
+set -euo pipefail
+
+CLAUDE_DIR="$HOME/.claude"
+CLAUDE_JSON="$HOME/.claude.json"
+ASSUME_YES=false
+STAGE=""
+trap '[[ -n $STAGE ]] && rm -rf "$STAGE"' EXIT
+
+# Global files/dirs under ~/.claude that are worth carrying over. Everything
+# else there (credentials, caches, sessions, daemon state, ...) is left behind.
+GLOBAL_ITEMS=(settings.json settings.local.json CLAUDE.md keybindings.json
+  history.jsonl skills agents commands plans plugins)
+
+usage() {
+  cat <<EOF
+Usage: claude-migrate <command> [options]
+
+Commands:
+  backup  [-o FILE] [-y]    Archive settings, plugins, skills, MCP servers and
+                            per-project memory/transcripts (no login token).
+                            Default FILE: ./claude-backup-<host>-<date>.tgz
+  restore [FILE] [-y]       Restore an archive, asking for each project's path
+                            on this machine. Picks FILE interactively if omitted.
+  remap   [OLD NEW] [-y]    Re-point a project's memory/history to a new path.
+                            Interactive unless OLD and NEW are given.
+
+  -y   Accept defaults instead of prompting (all non-worktree projects on
+       backup, unchanged paths and overwrites on restore).
+
+Requires: gum, jq, tar. Close Claude Code first.
+EOF
+}
+
+die() {
+  gum style --foreground 196 "✗ $*" >&2 || echo "✗ $*" >&2
+  exit 1
+}
+info() { gum style --foreground 212 "$*"; }
+warn() { gum style --foreground 214 "! $*" >&2; }
+
+require() {
+  local missing=()
+  for cmd in "$@"; do command -v "$cmd" >/dev/null || missing+=("$cmd"); done
+  if ((${#missing[@]})); then
+    echo "✗ missing: ${missing[*]} (install with: mise use -g ${missing[*]})" >&2
+    exit 1
+  fi
+}
+
+confirm() {
+  $ASSUME_YES && return 0
+  gum confirm "$@"
+}
+
+encode_path() { echo "${1//[^A-Za-z0-9]/-}"; }
+
+# Recover a project's real path from its folder name. The encoding is lossy,
+# so look for a known path that encodes to the same name: first the keys of
+# ~/.claude.json, then the "cwd" fields in the folder's transcripts.
+decode_dir() {
+  local dir="$1" candidate
+  if [[ -f $CLAUDE_JSON ]]; then
+    while IFS= read -r candidate; do
+      [[ $(encode_path "$candidate") == "$dir" ]] && { echo "$candidate"; return; }
+    done < <(jq -r '.projects // {} | keys[]' "$CLAUDE_JSON")
+  fi
+  local files=("$CLAUDE_DIR/projects/$dir"/*.jsonl)
+  [[ -e ${files[0]} ]] || return 0
+  while IFS= read -r candidate; do
+    [[ $(encode_path "$candidate") == "$dir" ]] && { echo "$candidate"; return; }
+  done < <(grep -ho '"cwd":"[^"]*"' "${files[@]}" | sort -u | sed 's/^"cwd":"//; s/"$//')
+  return 0
+}
+
+ensure_claude_stopped() {
+  pgrep -x claude >/dev/null || return 0
+  if $ASSUME_YES; then
+    warn "Claude Code is running; ~/.claude.json may change underneath this run."
+    return 0
+  fi
+  gum confirm "Claude Code is running and rewrites ~/.claude.json constantly. Continue anyway?" \
+    || exit 1
+}
+
+# Write jq output back to ~/.claude.json atomically, keeping its permissions.
+update_claude_json() {
+  local tmp
+  tmp=$(mktemp "$CLAUDE_JSON.XXXXXX")
+  [[ -f $CLAUDE_JSON ]] || echo '{}' >"$CLAUDE_JSON"
+  jq "$@" "$CLAUDE_JSON" >"$tmp"
+  chmod 600 "$tmp"
+  mv "$tmp" "$CLAUDE_JSON"
+}
+
+# Move a project folder; merge (never overwriting) if the target exists.
+move_project_dir() {
+  local src="$1" dst="$2"
+  [[ $src == "$dst" ]] && return 0
+  mkdir -p "$(dirname "$dst")"
+  if [[ -e $dst ]]; then
+    warn "$(basename "$dst") already exists; merging without overwriting."
+    cp -an "$src/." "$dst/"
+    rm -rf "$src"
+  else
+    mv "$src" "$dst"
+  fi
+}
+
+# Move ~/.claude.json's .projects[old] to .projects[new]; existing keys win.
+rename_project_key() {
+  local old="$1" new="$2"
+  [[ $old == "$new" || -z $old ]] && return 0
+  update_claude_json --arg o "$old" --arg n "$new" '
+    if .projects[$o] then
+      .projects[$n] = (.projects[$o] + (.projects[$n] // {})) | del(.projects[$o])
+    else . end'
+}
+
+# ── backup ────────────────────────────────────────────────────────────────────
+
+cmd_backup() {
+  local out=""
+  while (($#)); do
+    case $1 in
+      -o) out="$2"; shift 2 ;;
+      -y) ASSUME_YES=true; shift ;;
+      *) die "unknown option: $1" ;;
+    esac
+  done
+  out="${out:-./claude-backup-$(hostname -s)-$(date +%Y%m%d-%H%M).tgz}"
+  [[ -d $CLAUDE_DIR ]] || die "$CLAUDE_DIR does not exist"
+  ensure_claude_stopped
+
+  # Build "label|dir" options; worktree folders start deselected.
+  local dir path size label options=() preselected=() selected=()
+  for d in "$CLAUDE_DIR"/projects/*/; do
+    dir=$(basename "$d")
+    path=$(decode_dir "$dir")
+    size=$(du -sh "$d" | cut -f1)
+    label="${path:-?$dir} ($size)"
+    options+=("$label|$dir")
+    [[ $dir == *--claude-worktrees-* ]] || preselected+=("$label")
+  done
+
+  if $ASSUME_YES; then
+    for opt in "${options[@]}"; do
+      [[ ${opt##*|} == *--claude-worktrees-* ]] || selected+=("${opt##*|}")
+    done
+  elif ((${#options[@]})); then
+    mapfile -t selected < <(IFS=,; gum choose --no-limit --label-delimiter='|' \
+      --header="Projects to include (space toggles, enter confirms)" \
+      --selected="${preselected[*]}" "${options[@]}")
+  fi
+
+  STAGE=$(mktemp -d)
+  local stage="$STAGE"
+  mkdir -p "$stage/claude/projects"
+
+  for item in "${GLOBAL_ITEMS[@]}"; do
+    [[ -e $CLAUDE_DIR/$item ]] && cp -a "$CLAUDE_DIR/$item" "$stage/claude/"
+  done
+  rm -rf "$stage/claude/plugins/cache"
+
+  local manifest='[]'
+  for dir in "${selected[@]}"; do
+    cp -a "$CLAUDE_DIR/projects/$dir" "$stage/claude/projects/"
+    manifest=$(jq --arg d "$dir" --arg p "$(decode_dir "$dir")" \
+      '. + [{dir: $d, path: $p}]' <<<"$manifest")
+  done
+
+  jq -n --argjson p "$manifest" --arg h "$(hostname -s)" --arg home "$HOME" \
+    '{created: (now | todate), host: $h, home: $home, projects: $p}' >"$stage/manifest.json"
+
+  if [[ -f $CLAUDE_JSON ]]; then
+    jq --argjson p "$manifest" '{
+      mcpServers: (.mcpServers // {}),
+      projects: ((.projects // {}) | with_entries(select(.key as $k | $p | any(.path == $k))))
+    }' "$CLAUDE_JSON" >"$stage/claude.json"
+  fi
+
+  gum spin --title "Writing $out" -- tar czf "$out" -C "$stage" .
+  chmod 600 "$out"
+  info "✓ $out ($(du -h "$out" | cut -f1), ${#selected[@]} projects)"
+  warn "Transcripts can contain secrets from tool output; store the archive accordingly."
+}
+
+# ── restore ───────────────────────────────────────────────────────────────────
+
+cmd_restore() {
+  local archive=""
+  while (($#)); do
+    case $1 in
+      -y) ASSUME_YES=true; shift ;;
+      -*) die "unknown option: $1" ;;
+      *) archive="$1"; shift ;;
+    esac
+  done
+  if [[ -z $archive ]]; then
+    $ASSUME_YES && die "restore -y needs an archive path"
+    info "Pick the backup archive:"
+    archive=$(gum file --file "$PWD")
+  fi
+  [[ -f $archive ]] || die "no such file: $archive"
+  ensure_claude_stopped
+
+  STAGE=$(mktemp -d)
+  local stage="$STAGE"
+  gum spin --title "Extracting" -- tar xzf "$archive" -C "$stage"
+  [[ -f $stage/manifest.json ]] || die "$archive is not a claude-migrate archive"
+  info "Backup from $(jq -r '.host + " at " + .created' "$stage/manifest.json")"
+
+  if [[ -e $CLAUDE_DIR || -e $CLAUDE_JSON ]]; then
+    local safety
+    safety="$HOME/.claude-pre-restore-$(date +%Y%m%d-%H%M%S).tgz"
+    local existing=()
+    [[ -e $CLAUDE_DIR ]] && existing+=(.claude)
+    [[ -e $CLAUDE_JSON ]] && existing+=(.claude.json)
+    gum spin --title "Saving current setup to $safety" -- \
+      tar czf "$safety" -C "$HOME" "${existing[@]}"
+    chmod 600 "$safety"
+    info "✓ current setup saved to $safety"
+  fi
+
+  mkdir -p "$CLAUDE_DIR/projects"
+  for item in "${GLOBAL_ITEMS[@]}"; do
+    [[ -e $stage/claude/$item ]] || continue
+    if [[ -e $CLAUDE_DIR/$item ]] && ! confirm "Overwrite existing ~/.claude/$item?"; then
+      continue
+    fi
+    if [[ -d $stage/claude/$item ]]; then
+      mkdir -p "$CLAUDE_DIR/$item"
+      cp -a --remove-destination "$stage/claude/$item/." "$CLAUDE_DIR/$item/"
+    else
+      cp -a "$stage/claude/$item" "$CLAUDE_DIR/$item"
+    fi
+  done
+
+  local map='[]' dir old new hint count
+  count=$(jq '.projects | length' "$stage/manifest.json")
+  for ((i = 0; i < count; i++)); do
+    dir=$(jq -r ".projects[$i].dir" "$stage/manifest.json")
+    old=$(jq -r ".projects[$i].path" "$stage/manifest.json")
+    if $ASSUME_YES; then
+      new="$old"
+    else
+      if [[ -z $old ]]; then hint="original path unknown ($dir)"
+      elif [[ -d $old ]]; then hint="exists here"
+      else hint="does not exist here"
+      fi
+      new=$(gum input --value "$old" --placeholder "/path/to/project (empty skips)" \
+        --header "Project $((i + 1))/$count: $old — $hint")
+    fi
+    if [[ -z $new ]]; then
+      warn "skipped $dir"
+      continue
+    fi
+    new="${new%/}"
+    move_project_dir "$stage/claude/projects/$dir" "$CLAUDE_DIR/projects/$(encode_path "$new")"
+    map=$(jq --arg o "$old" --arg n "$new" '. + [{old: $o, new: $n}]' <<<"$map")
+    info "✓ $new"
+  done
+
+  if [[ -f $stage/claude.json ]]; then
+    update_claude_json --slurpfile b "$stage/claude.json" --argjson map "$map" '
+      . as $cur
+      | .mcpServers = (($b[0].mcpServers // {}) + ($cur.mcpServers // {}))
+      | .projects = (($cur.projects // {}) + ([
+          $map[] | select($b[0].projects[.old])
+          | {key: .new, value: ($b[0].projects[.old] + ($cur.projects[.new] // {}))}
+        ] | from_entries))'
+  fi
+
+  local old_home
+  old_home=$(jq -r '.home' "$stage/manifest.json")
+  if [[ $old_home != "$HOME" ]]; then
+    for f in settings.json settings.local.json; do
+      if [[ ! -f $CLAUDE_DIR/$f ]] || ! grep -qF "$old_home" "$CLAUDE_DIR/$f"; then continue; fi
+      grep -nF "$old_home" "$CLAUDE_DIR/$f" >&2
+      if confirm "Replace $old_home with $HOME in ~/.claude/$f?"; then
+        local esc_old esc_new
+        esc_old=$(printf '%s' "$old_home" | sed 's/[][\\.*^$|]/\\&/g')
+        esc_new=$(printf '%s' "$HOME" | sed 's/[\\&|]/\\&/g')
+        sed -i "s|$esc_old|$esc_new|g" "$CLAUDE_DIR/$f"
+      fi
+    done
+  fi
+
+  info "✓ restore complete. Start claude and run /login."
+}
+
+# ── remap ─────────────────────────────────────────────────────────────────────
+
+remap_one() {
+  local old="$1" new="${2%/}" olddir newdir
+  olddir=$(encode_path "$old")
+  newdir=$(encode_path "$new")
+  [[ -d $CLAUDE_DIR/projects/$olddir ]] || die "no project folder for $old ($olddir)"
+  move_project_dir "$CLAUDE_DIR/projects/$olddir" "$CLAUDE_DIR/projects/$newdir"
+  rename_project_key "$old" "$new"
+  info "✓ $old → $new"
+}
+
+cmd_remap() {
+  local args=()
+  while (($#)); do
+    case $1 in
+      -y) ASSUME_YES=true; shift ;;
+      -*) die "unknown option: $1" ;;
+      *) args+=("$1"); shift ;;
+    esac
+  done
+  [[ -d $CLAUDE_DIR/projects ]] || die "$CLAUDE_DIR/projects does not exist"
+  ensure_claude_stopped
+
+  if ((${#args[@]} == 2)); then
+    remap_one "${args[0]}" "${args[1]}"
+    return
+  fi
+  ((${#args[@]} == 0)) || die "remap takes either no arguments or OLD NEW"
+  $ASSUME_YES && die "remap -y needs OLD and NEW"
+
+  local dir path options choice new
+  while true; do
+    options=()
+    for d in "$CLAUDE_DIR"/projects/*/; do
+      dir=$(basename "$d")
+      path=$(decode_dir "$dir")
+      if [[ -z $path ]]; then options+=("?$dir (path unknown)|$dir")
+      elif [[ -d $path ]]; then options+=("$path|$dir")
+      else options+=("$path (missing)|$dir")
+      fi
+    done
+    options+=("Done|")
+    choice=$(gum filter --header "Project to remap" --height 20 \
+      < <(printf '%s\n' "${options[@]%|*}")) || return 0
+    [[ $choice == Done ]] && return 0
+
+    for opt in "${options[@]}"; do [[ ${opt%|*} == "$choice" ]] && dir="${opt##*|}"; done
+    path=$(decode_dir "$dir")
+    new=$(gum input --value "$path" --header "New path for $choice (empty cancels)")
+    [[ -z $new || $new == "$path" ]] && continue
+    if [[ -z $path ]]; then
+      move_project_dir "$CLAUDE_DIR/projects/$dir" "$CLAUDE_DIR/projects/$(encode_path "${new%/}")"
+      info "✓ $dir → ${new%/}"
+    else
+      remap_one "$path" "$new"
+    fi
+  done
+}
+
+# ── main ──────────────────────────────────────────────────────────────────────
+
+require gum jq tar
+cmd="${1:-}"
+shift || true
+case $cmd in
+  backup) cmd_backup "$@" ;;
+  restore) cmd_restore "$@" ;;
+  remap) cmd_remap "$@" ;;
+  -h | --help | help) usage ;;
+  *) usage >&2; exit 1 ;;
+esac
