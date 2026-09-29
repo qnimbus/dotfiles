@@ -124,8 +124,8 @@ export PATH="$HOME/.local/bin:$PATH"
 export OP_SERVICE_ACCOUNT_TOKEN="$(timeout -k 2s 5s powershell.exe -Command 'echo $env:OP_SERVICE_ACCOUNT_TOKEN' 2>/dev/null | tr -d '\r')"
 [ -z "$OP_SERVICE_ACCOUNT_TOKEN" ] && echo "warning: OP_SERVICE_ACCOUNT_TOKEN fetch timed out or failed" >&2
 
-export GH_TOKEN="$(timeout -k 2s 5s powershell.exe -Command 'echo $env:GH_TOKEN' 2>/dev/null | tr -d '\r')"
-[ -z "$GH_TOKEN" ] && echo "warning: GH_TOKEN fetch timed out or failed" >&2
+export GITHUB_TOKEN="$(timeout -k 2s 5s powershell.exe -Command 'echo $env:GITHUB_TOKEN' 2>/dev/null | tr -d '\r')"
+[ -z "$GITHUB_TOKEN" ] && echo "warning: GITHUB_TOKEN fetch timed out or failed" >&2
 
 {{- end }}
 
