@@ -174,4 +174,6 @@ source "${HOME%/}/.local/bin/aliases.sh"
 
 eval "$(starship init bash)"
 
-eval "$(mise activate bash)"
+if command -v mise >/dev/null; then
+    eval "$(mise activate bash)"
+fi
