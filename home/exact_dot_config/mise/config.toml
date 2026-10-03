@@ -1,3 +1,4 @@
 [tools]
 1password = "2.40.0"
+"aqua:AGWA/git-crypt" = "0.8.0"
 gum = "2.0.2"
