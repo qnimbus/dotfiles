@@ -118,6 +118,8 @@ if ! shopt -oq posix; then
     fi
 fi
 
+export EDITOR=nano
+
 export PATH="$HOME/.local/bin:$PATH"
 {{ if not .ephemeral -}}
 
