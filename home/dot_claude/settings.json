@@ -1,0 +1,73 @@
+{
+  "worktree": {
+    "baseRef": "fresh"
+  },
+  "enabledPlugins": {
+    "gitops-skills@fluxcd": true,
+    "typesafe@typesafe-ai": true,
+    "cc-plugin-you-should-know@builtin": true
+  },
+  "extraKnownMarketplaces": {
+    "fluxcd": {
+      "source": {
+        "source": "github",
+        "repo": "fluxcd/agent-skills"
+      }
+    },
+    "typesafe-ai": {
+      "source": {
+        "source": "github",
+        "repo": "typesafe-ai/skills"
+      }
+    }
+  },
+  "effortLevel": "xhigh",
+  "awaySummaryEnabled": false,
+  "tui": "fullscreen",
+  "verbose": false,
+  "switchModelsOnFlag": true,
+  "agentPushNotifEnabled": true,
+  "autoMode": {
+    "allow": [
+      "$defaults",
+      "Bash(talosctl:*) in this repo — read/status operations routine to Talos cluster management",
+      "Bash(flux get:*), Bash(flux logs:*) in this repo — routine Flux GitOps status checks"
+    ],
+    "soft_deny": [
+      "$defaults",
+      "kubectl delete/apply -n kube-system or -n flux-system without explicit review — shared cluster-critical namespaces",
+      "Writes to kubernetes/flux/vars/cluster-secrets.sops.yaml or any *.sops.yaml — SOPS-encrypted secret material",
+      "shred usage outside explicitly identified scratch/temp paths — irreversible local destruction"
+    ],
+    "environment": [
+      "### Org-wide",
+      "**Organization**: None configured",
+      "**Cloud provider(s)**: None configured — cluster is bare-metal Talos Linux; no cloud IaaS provider detected",
+      "**Repository visibility**: qnimbus/home-lab is private (confirmed via gh); forgejo.cluster.vwn.io/basvanwetten/home-lab.git is a second remote of the same repo, host visibility unconfirmed — treat as private/self-hosted",
+      "**Internal sharing / snippet hosting**: None configured — treat public paste/gist services as outside the trust boundary",
+      "**Secrets management**: SOPS+age for Talos secrets (SOPS_AGE_KEY_FILE), External Secrets Operator + 1Password Connect for app secrets (OP_SERVICE_ACCOUNT_TOKEN)",
+      "**Default / protected branches**: main (default); no classic branch protections listed, rulesets not queryable here — do not treat as unprotected",
+      "**CI/CD deploy targets**: GitHub Actions self-hosted runners (actions-runner-system namespace); FluxCD GitOps reconciliation from this repo's kubernetes/ directory into the cluster",
+      "**Network posture**: None configured",
+      "**Host containment**: None configured — assume Claude Code runs on an ordinary developer machine with open internet",
+      "**Source control**: This repo only — origin https://github.com/qnimbus/home-lab (private) and forgejo https://forgejo.cluster.vwn.io/basvanwetten/home-lab.git",
+      "**Trusted internal domains**: forgejo.cluster.vwn.io (secondary remote host for this repo)",
+      "**Trusted cloud buckets**: vwn-io-cluster-cnpg (config-derived — not a confirmed upload destination; uploads of local data still require confirmation)",
+      "**Key internal services**: factory.talos.dev (Talos image factory), ghcr.io and quay.io (container registries used by this cluster)",
+      "**Internal package registry**: None configured",
+      "**Sensitive data locations & audiences**: kubernetes/components/postgres/externalsecret.yaml, kubernetes/components/volsync/externalsecret.yaml, kubernetes/flux/vars/cluster-secrets.sops.yaml, truenas/docker/*/.env files, 1password-credentials.json, onepassword.env, age.key, github-deploy.key(.pub), github-push-token.txt, flux-deploy-key* — share only with audiences cleared at the [named+specifics] bar",
+      "**Data retention / declassification**: None configured",
+      "**Sensitive remote targets**: any namespace, host, or container whose name carries `prod` or `production` as a whole word or name segment (none observed in this cluster's namespace list, which uses flux-system/network/cert-manager/kube-system/external-secrets/system-upgrade/actions-runner-system/database/default/development/rook-ceph/observability/tailscale)",
+      "**Protected deployment namespaces / environments**: None configured — fall back to the Sensitive remote targets heuristic",
+      "**Protected IaC scopes**: IAM, RBAC, networking, quota, and node-pool resources; anything whose name or tag carries `prod` or `production` as a whole word or name segment; Talos machine configs (talos/talconfig.yaml) and cluster bootstrap (Helmfile) as this cluster's core IaC",
+      "### User-specific",
+      "**Primary use of Claude Code**: software development — home-lab GitOps/Kubernetes infrastructure management",
+      "**Trusted repo**: /home/bas/dev/home-lab (this repo), private, remotes origin (github.com/qnimbus/home-lab) and forgejo (forgejo.cluster.vwn.io/basvanwetten/home-lab.git)",
+      "**Org-specific CLIs**: mise, talosctl, helmfile, flux, flux-operator, flux-operator-mcp, kustomize, yq, op (1Password CLI), kubectl, helm — routine under this repo's task/toolchain workflow"
+    ]
+  },
+  "permissions": {
+    "deny": ["Bash(op.exe:*)", "Bash(*op.exe*)", "Bash(op:*)"]  },
+
+  "model": "opus"
+}

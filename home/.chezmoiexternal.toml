@@ -1,0 +1,7 @@
+# Skills installed from upstream repos rather than tracked in this repo.
+# chezmoi re-downloads them when refreshPeriod has passed (or with `chezmoi apply -R`).
+
+[".claude/skills/find-skills/SKILL.md"]
+    type = "file"
+    url = "https://raw.githubusercontent.com/vercel-labs/skills/main/skills/find-skills/SKILL.md"
+    refreshPeriod = "168h"

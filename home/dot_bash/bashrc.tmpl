@@ -119,7 +119,9 @@ if ! shopt -oq posix; then
 fi
 
 export EDITOR=nano
+{{ if .wsl -}}
 export BROWSER=wslview
+{{ end -}}
 export PATH="$HOME/.local/bin:$PATH"
 {{ if not .ephemeral -}}
 
