@@ -4,6 +4,12 @@ README.md
 .config/op/
 .config/op/**
 
+# Runtime state written by tools; keep exact_dot_config from deleting it
+.config/wslu
+.config/wslu/**
+.config/go
+.config/go/**
+
 # Claude (default: ignore all runtime state)
 .claude/**
 !.claude/
