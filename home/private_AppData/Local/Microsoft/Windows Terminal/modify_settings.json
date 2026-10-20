@@ -12,6 +12,10 @@ chezmoi:modify-template
   the dotfiles. Changes made in the Windows Terminal Settings UI must be copied
   into the managed file by hand.
 
+  A local defaultProfile that points to one of those WSL profiles (by GUID or
+  name) is kept too, so a WSL distro can be the default on this machine while
+  other machines keep the managed default.
+
   When there are no local WSL profiles, the managed file is written verbatim
   (keeping its formatting); otherwise the merged result is re-serialized.
 */ -}}
@@ -25,19 +29,28 @@ chezmoi:modify-template
 {{- end -}}
 
 {{- $keep := list -}}
+{{- $keepIds := list -}}
+{{- $localDefault := "" -}}
 {{- if trim .chezmoi.stdin -}}
 {{-   $current := fromJsonc .chezmoi.stdin -}}
 {{-   if and (kindIs "map" $current) (hasKey $current "profiles") (kindIs "map" $current.profiles) (hasKey $current.profiles "list") -}}
 {{-     range $current.profiles.list -}}
 {{-       if and (kindIs "map" .) (has (get . "source") $wslSources) (not (has (get . "guid") $managedGuids)) -}}
 {{-         $keep = append $keep . -}}
+{{-         $keepIds = concat $keepIds (list (get . "guid") (get . "name")) -}}
 {{-       end -}}
 {{-     end -}}
+{{-   end -}}
+{{-   if kindIs "map" $current -}}
+{{-     $localDefault = get $current "defaultProfile" -}}
 {{-   end -}}
 {{- end -}}
 
 {{- if $keep -}}
 {{-   $_ := set $managed.profiles "list" (concat $managed.profiles.list $keep) -}}
+{{-   if and $localDefault (has $localDefault $keepIds) -}}
+{{-     $_ := set $managed "defaultProfile" $localDefault -}}
+{{-   end -}}
 {{    toPrettyJson "    " $managed }}{{ "\n" }}
 {{- else -}}
 {{    $managedText }}
