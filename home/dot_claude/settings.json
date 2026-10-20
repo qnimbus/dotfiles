@@ -1,4 +1,12 @@
 {
+  "permissions": {
+    "deny": [
+      "Bash(op.exe:*)",
+      "Bash(*op.exe*)",
+      "Bash(op:*)"
+    ]
+  },
+  "model": "opus[1m]",
   "worktree": {
     "baseRef": "fresh"
   },
@@ -23,6 +31,7 @@
   },
   "effortLevel": "xhigh",
   "awaySummaryEnabled": false,
+  "autoUpdatesChannel": "latest",
   "tui": "fullscreen",
   "verbose": false,
   "switchModelsOnFlag": true,
@@ -66,8 +75,5 @@
       "**Org-specific CLIs**: mise, talosctl, helmfile, flux, flux-operator, flux-operator-mcp, kustomize, yq, op (1Password CLI), kubectl, helm — routine under this repo's task/toolchain workflow"
     ]
   },
-  "permissions": {
-    "deny": ["Bash(op.exe:*)", "Bash(*op.exe*)", "Bash(op:*)"]  },
-
-  "model": "opus"
+  "theme": "auto"
 }

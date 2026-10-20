@@ -8,7 +8,12 @@
 
 [gpg "ssh"]
 {{- if eq .chezmoi.os "windows" }}
+{{- /* Classic installer uses Program Files; the Store (MSIX) version only exposes an app alias */ -}}
+{{-   if stat "C:/Program Files/1Password/app/8/op-ssh-sign.exe" }}
   program = "C:/Program Files/1Password/app/8/op-ssh-sign.exe"
+{{-   else }}
+  program = "{{ .chezmoi.homeDir }}/AppData/Local/Microsoft/WindowsApps/op-ssh-sign.exe"
+{{-   end }}
 {{- else}}
   program = "/mnt/c/Program Files/1Password/app/8/op-ssh-sign-wsl"
 {{- end }}

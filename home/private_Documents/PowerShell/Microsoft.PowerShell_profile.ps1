@@ -698,3 +698,15 @@ else {
     # Vanilla PowerShell
     Write-Host "Using vanilla PowerShell without starship or oh-my-posh." -ForegroundColor Yellow
 }
+
+################################################################################
+# MISE
+################################################################################
+
+# Same config filename as bashrc, so Windows and Linux share project configs
+$Env:MISE_DEFAULT_CONFIG_FILENAME = ".mise/config.toml"
+
+# Activate after the prompt setup so mise can hook into the prompt
+if (Get-Command mise -ErrorAction SilentlyContinue) {
+    (& mise activate pwsh) | Out-String | Invoke-Expression
+}
