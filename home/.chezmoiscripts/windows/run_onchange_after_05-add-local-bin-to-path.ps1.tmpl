@@ -1,0 +1,136 @@
+{{ if eq .osid "windows" -}}
+#Requires -Version 5.1
+
+<#
+.SYNOPSIS
+    Adds ~/.local/bin to the user PATH.
+
+.DESCRIPTION
+    Additive:   existing entries are never removed, reordered or expanded. The
+                raw registry value is read without expanding %VARIABLES%, and the
+                new entry is appended.
+    Atomic:     the new value is built in memory and written with a single
+                registry write; if anything fails before that, PATH is untouched.
+    Idempotent: entries are compared case-insensitively after expanding
+                variables and trimming trailing slashes; if the directory is
+                already present (in any spelling), nothing is written.
+
+    After a change, a WM_SETTINGCHANGE broadcast tells Explorer to reload the
+    environment, so newly started programs see the new PATH.
+
+.NOTES
+    Author: {{ .chezmoi.username }}
+    Machine: {{ .chezmoi.hostname }}
+    OS: {{ .chezmoi.os }}/{{ .chezmoi.arch }}
+    Version: 1.0
+#>
+
+[CmdletBinding()]
+param()
+
+$ErrorActionPreference = "Stop"
+
+# Stored unexpanded so it follows the profile if the user folder moves
+$Entries = @(
+    '%USERPROFILE%\.local\bin'
+)
+
+function Write-Log {
+    param(
+        [Parameter(Mandatory = $true)][string]$Message,
+        [ValidateSet("Info", "Warning", "Error", "Success")][string]$Level = "Info"
+    )
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $color = switch ($Level) {
+        "Info"    { "White" }
+        "Warning" { "Yellow" }
+        "Error"   { "Red" }
+        "Success" { "Green" }
+    }
+    Write-Host "[$timestamp] [$Level] $Message" -ForegroundColor $color
+}
+
+# Normalized form used only for comparison, never written
+function Get-NormalizedPath {
+    param([string]$Path)
+    return [Environment]::ExpandEnvironmentVariables($Path.Trim().Trim('"')).TrimEnd('\', '/').ToLowerInvariant()
+}
+
+function Send-EnvironmentChange {
+    if (-not ('Win32.NativeMethods' -as [type])) {
+        Add-Type -Namespace Win32 -Name NativeMethods -MemberDefinition @'
+[DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+public static extern IntPtr SendMessageTimeout(IntPtr hWnd, uint Msg, UIntPtr wParam, string lParam,
+    uint fuFlags, uint uTimeout, out UIntPtr lpdwResult);
+'@
+    }
+    $HWND_BROADCAST = [IntPtr]0xffff
+    $WM_SETTINGCHANGE = 0x1A
+    $SMTO_ABORTIFHUNG = 0x2
+    $result = [UIntPtr]::Zero
+    [void][Win32.NativeMethods]::SendMessageTimeout($HWND_BROADCAST, $WM_SETTINGCHANGE, [UIntPtr]::Zero,
+        "Environment", $SMTO_ABORTIFHUNG, 5000, [ref]$result)
+}
+
+$key = $null
+try {
+    Write-Log "========================================"
+    Write-Log "STARTING: $($MyInvocation.MyCommand.Name)"
+    Write-Log "========================================"
+
+    $key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment', $true)
+    if (-not $key) { throw "Cannot open HKCU\Environment for writing" }
+
+    # Raw value, %VARIABLES% left as-is
+    $current = [string]$key.GetValue('Path', '', [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
+
+    $existing = @{}
+    foreach ($part in ($current -split ';')) {
+        if ($part.Trim()) { $existing[(Get-NormalizedPath $part)] = $true }
+    }
+
+    $toAdd = @()
+    foreach ($entry in $Entries) {
+        $normalized = Get-NormalizedPath $entry
+        if ($existing.ContainsKey($normalized)) {
+            Write-Log "Already in user PATH: $entry" -Level Info
+        }
+        else {
+            $toAdd += $entry
+            $existing[$normalized] = $true   # guards against duplicates within $Entries
+        }
+    }
+
+    if ($toAdd.Count -eq 0) {
+        Write-Log "User PATH unchanged." -Level Success
+        exit 0
+    }
+
+    $base = $current.TrimEnd(';')
+    $newValue = if ($base) { $base + ';' + ($toAdd -join ';') } else { $toAdd -join ';' }
+
+    # Single write; ExpandString keeps %VARIABLES% working (existing and new)
+    $key.SetValue('Path', $newValue, [Microsoft.Win32.RegistryValueKind]::ExpandString)
+    foreach ($entry in $toAdd) { Write-Log "Added to user PATH: $entry" -Level Success }
+
+    # PATH is already written; a failed broadcast only means a sign-out is needed
+    try {
+        Send-EnvironmentChange
+        Write-Log "Notified running programs. Open a new terminal to use the updated PATH." -Level Info
+    }
+    catch {
+        Write-Log "PATH updated, but notifying programs failed: $($_.Exception.Message). Sign out and in to apply." -Level Warning
+    }
+}
+catch {
+    Write-Log "Script failed: $($_.Exception.Message)" -Level Error
+    Write-Log "User PATH was not changed. chezmoi will retry on the next apply." -Level Error
+    exit 1
+}
+finally {
+    if ($key) { $key.Close() }
+    Write-Log "========================================"
+    Write-Log "EXITING: $($MyInvocation.MyCommand.Name)"
+    Write-Log "========================================"
+}
+{{- end -}}
