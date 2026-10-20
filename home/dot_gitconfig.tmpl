@@ -3,19 +3,57 @@
 [init]
 	defaultBranch = main
 
+{{- /*
+  Commit signing with 1Password's SSH signing program.
+
+  Desktop machines that should always sign (Windows, WSL, macOS; not ephemeral
+  or headless) always get signing on. The first existing program path wins; if
+  none exists yet, the default path is used anyway so commits fail loudly
+  instead of going out unsigned, and chezmoi prints a warning.
+
+  Elsewhere (Codespaces, servers, native Linux without 1Password) signing is on
+  only if the program exists; otherwise it's off, with a warning on non-ephemeral,
+  non-headless machines.
+
+  Classic installs live in Program Files; the Store (MSIX) version only exposes
+  app aliases in WindowsApps. In WSL the Windows username can differ from the
+  Linux one, so WindowsApps is searched under every Windows user.
+*/ -}}
+{{- $desktop := and (not .ephemeral) (not .headless) -}}
+{{- $mustSign := and $desktop (or (eq .chezmoi.os "windows") .wsl (eq .chezmoi.os "darwin")) -}}
+{{- $candidates := list -}}
+{{- $default := "" -}}
+{{- if eq .chezmoi.os "windows" -}}
+{{-   $default = printf "%s/AppData/Local/Microsoft/WindowsApps/op-ssh-sign.exe" .chezmoi.homeDir -}}
+{{-   $candidates = list "C:/Program Files/1Password/app/8/op-ssh-sign.exe" $default -}}
+{{- else if .wsl -}}
+{{-   $default = printf "/mnt/c/Users/%s/AppData/Local/Microsoft/WindowsApps/op-ssh-sign-wsl.exe" .chezmoi.username -}}
+{{-   $candidates = concat (list "/mnt/c/Program Files/1Password/app/8/op-ssh-sign-wsl") (glob "/mnt/c/Users/*/AppData/Local/Microsoft/WindowsApps/op-ssh-sign-wsl.exe") -}}
+{{- else if eq .chezmoi.os "darwin" -}}
+{{-   $default = "/Applications/1Password.app/Contents/MacOS/op-ssh-sign" -}}
+{{-   $candidates = list $default -}}
+{{- else if eq .chezmoi.os "linux" -}}
+{{-   $candidates = list "/opt/1Password/op-ssh-sign" -}}
+{{- end -}}
+{{- $signProgram := "" -}}
+{{- range $candidates -}}
+{{-   if and (not $signProgram) (stat .) -}}
+{{-     $signProgram = . -}}
+{{-   end -}}
+{{- end -}}
+{{- if and (not $signProgram) $mustSign -}}
+{{-   $signProgram = $default -}}
+{{-   warnf "1Password signing program not found; commits will fail until 1Password is installed at %s" $default -}}
+{{- else if and (not $signProgram) $desktop -}}
+{{-   warnf "1Password signing program not found; git commit signing is disabled on this machine" -}}
+{{- end }}
+
 [gpg]
 	format = ssh
 
+{{ if $signProgram -}}
 [gpg "ssh"]
-{{- if eq .chezmoi.os "windows" }}
-{{- /* Classic installer uses Program Files; the Store (MSIX) version only exposes an app alias */ -}}
-{{-   if stat "C:/Program Files/1Password/app/8/op-ssh-sign.exe" }}
-  program = "C:/Program Files/1Password/app/8/op-ssh-sign.exe"
-{{-   else }}
-  program = "{{ .chezmoi.homeDir }}/AppData/Local/Microsoft/WindowsApps/op-ssh-sign.exe"
-{{-   end }}
-{{- else}}
-  program = "/mnt/c/Program Files/1Password/app/8/op-ssh-sign-wsl"
+  program = "{{ $signProgram }}"
 {{- end }}
 
 [worktree]
@@ -25,7 +63,7 @@
   prune = true
 
 [commit]
-	gpgsign = true
+	gpgsign = {{ if $signProgram }}true{{ else }}false{{ end }}
 
 [user]
 	email = bas@vanwetten.com
