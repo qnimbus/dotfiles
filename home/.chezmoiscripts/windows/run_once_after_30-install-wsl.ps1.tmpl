@@ -1,0 +1,115 @@
+{{ if and (eq .osid "windows") (not .ephemeral) (not .headless) -}}
+#Requires -Version 5.1
+
+<#
+.SYNOPSIS
+    Installs WSL and an Ubuntu distribution.
+
+.DESCRIPTION
+    Skips everything if the distribution is already registered. Otherwise runs
+    'wsl --install' elevated (one UAC prompt). A reboot is usually needed
+    afterwards before the distribution can be started.
+
+    Exits non-zero when the install fails or the UAC prompt is declined, so
+    chezmoi retries it on the next apply.
+
+.NOTES
+    Author: {{ .chezmoi.username }}
+    Machine: {{ .chezmoi.hostname }}
+    OS: {{ .chezmoi.os }}/{{ .chezmoi.arch }}
+    Version: 1.0
+#>
+
+[CmdletBinding()]
+param(
+    [string]$Distribution = "Ubuntu-24.04"
+)
+
+$ErrorActionPreference = "Stop"
+
+function Write-Log {
+    param(
+        [Parameter(Mandatory = $true)][string]$Message,
+        [ValidateSet("Info", "Warning", "Error", "Success")][string]$Level = "Info"
+    )
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $color = switch ($Level) {
+        "Info"    { "White" }
+        "Warning" { "Yellow" }
+        "Error"   { "Red" }
+        "Success" { "Green" }
+    }
+    Write-Host "[$timestamp] [$Level] $Message" -ForegroundColor $color
+}
+
+# Registered distros live in the registry; reading it avoids parsing
+# wsl.exe's UTF-16 output and works before WSL itself is installed.
+function Test-DistributionRegistered {
+    param([Parameter(Mandatory = $true)][string]$Name)
+
+    $lxss = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss"
+    if (-not (Test-Path $lxss)) { return $false }
+
+    $names = Get-ChildItem $lxss | ForEach-Object {
+        (Get-ItemProperty $_.PSPath -ErrorAction SilentlyContinue).DistributionName
+    }
+    return ($names -contains $Name)
+}
+
+function Test-IsAdmin {
+    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = New-Object Security.Principal.WindowsPrincipal($identity)
+    return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+try {
+    Write-Log "========================================"
+    Write-Log "STARTING: $($MyInvocation.MyCommand.Name)"
+    Write-Log "========================================"
+
+    if (Test-DistributionRegistered -Name $Distribution) {
+        Write-Log "WSL distribution '$Distribution' is already installed, skipping." -Level Success
+        exit 0
+    }
+
+    # --no-launch: don't open the distro now; it can't start until after a reboot anyway
+    $wslArgs = @("--install", "--distribution", $Distribution, "--no-launch")
+    Write-Log "Installing WSL with '$Distribution' (wsl.exe $($wslArgs -join ' '))..."
+
+    if (Test-IsAdmin) {
+        & wsl.exe @wslArgs
+        $exitCode = $LASTEXITCODE
+    }
+    else {
+        Write-Log "Requesting administrator rights (UAC prompt)..."
+        try {
+            $proc = Start-Process -FilePath "wsl.exe" -ArgumentList $wslArgs -Verb RunAs -Wait -PassThru
+            $exitCode = $proc.ExitCode
+        }
+        catch {
+            # Thrown when the UAC prompt is declined
+            throw "Elevation was declined or failed: $($_.Exception.Message)"
+        }
+    }
+
+    if ($exitCode -ne 0) {
+        throw "wsl.exe --install exited with code $exitCode"
+    }
+
+    Write-Log "WSL install finished." -Level Success
+    Write-Log "Next steps:" -Level Warning
+    Write-Log "  1. Reboot Windows (needed when WSL was enabled for the first time)." -Level Warning
+    Write-Log "  2. Run 'wsl -d $Distribution' and create your Linux user." -Level Warning
+    Write-Log "  3. Inside WSL, install chezmoi and run 'chezmoi init --apply <your-repo>'." -Level Warning
+}
+catch {
+    Write-Log "Script failed: $($_.Exception.Message)" -Level Error
+    Write-Log "chezmoi will retry this script on the next apply." -Level Error
+    exit 1
+}
+finally {
+    Write-Log "========================================"
+    Write-Log "EXITING: $($MyInvocation.MyCommand.Name)"
+    Write-Log "========================================"
+}
+{{- end -}}
