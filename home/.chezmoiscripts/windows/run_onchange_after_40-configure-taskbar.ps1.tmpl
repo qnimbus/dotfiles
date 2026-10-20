@@ -1,0 +1,103 @@
+{{ if and (eq .osid "windows") (not .ephemeral) (not .headless) -}}
+#Requires -Version 5.1
+
+<#
+.SYNOPSIS
+    Configures the Windows taskbar: search box mode and pinned apps.
+
+.DESCRIPTION
+    Sets the taskbar search mode ($SearchboxMode) for the current user.
+
+    Unpins apps with the shell's "Unpin from taskbar" action on entries in the Apps folder
+    (shell:AppsFolder). Apps that aren't pinned or aren't installed are skipped,
+    so the script is safe to re-run. Add names to $UnpinApps to unpin more apps;
+    chezmoi re-runs this script whenever the list changes.
+
+    The action is matched by name, which depends on the Windows display
+    language (see $UnpinVerbNames).
+
+.NOTES
+    Author: {{ .chezmoi.username }}
+    Machine: {{ .chezmoi.hostname }}
+    OS: {{ .chezmoi.os }}/{{ .chezmoi.arch }}
+    Version: 1.0
+#>
+
+[CmdletBinding()]
+param()
+
+$ErrorActionPreference = "Stop"
+
+# Taskbar search: 0 = hidden, 1 = icon only, 2 = search box, 3 = icon and label
+$SearchboxMode = 0
+
+# Apps to unpin, by name as shown in the Start menu
+$UnpinApps = @(
+    "Microsoft Store"
+)
+
+# Names of the "Unpin from taskbar" action (with '&' removed). The name depends
+# on the Windows display language; add the translation if you switch language.
+$UnpinVerbNames = @(
+    "Unpin from taskbar"
+)
+
+function Write-Log {
+    param(
+        [Parameter(Mandatory = $true)][string]$Message,
+        [ValidateSet("Info", "Warning", "Error", "Success")][string]$Level = "Info"
+    )
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $color = switch ($Level) {
+        "Info"    { "White" }
+        "Warning" { "Yellow" }
+        "Error"   { "Red" }
+        "Success" { "Green" }
+    }
+    Write-Host "[$timestamp] [$Level] $Message" -ForegroundColor $color
+}
+
+try {
+    Write-Log "========================================"
+    Write-Log "STARTING: $($MyInvocation.MyCommand.Name)"
+    Write-Log "========================================"
+
+    # Explorer watches this key, so the change shows without a restart
+    $searchKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Search"
+    if (-not (Test-Path $searchKey)) { New-Item -Path $searchKey -Force | Out-Null }
+    Set-ItemProperty -Path $searchKey -Name SearchboxTaskbarMode -Value $SearchboxMode -Type DWord
+    Write-Log "Set taskbar search mode to $SearchboxMode." -Level Success
+
+    $appsFolder = (New-Object -ComObject Shell.Application).NameSpace('shell:::{4234d49b-0245-4df3-b780-3893943456e1}')
+    $items = $appsFolder.Items()
+
+    foreach ($appName in $UnpinApps) {
+        $app = $items | Where-Object { $_.Name -eq $appName } | Select-Object -First 1
+        if (-not $app) {
+            Write-Log "$appName not found in the Apps folder, skipping." -Level Info
+            continue
+        }
+
+        $verb = $app.Verbs() | Where-Object { $UnpinVerbNames -contains $_.Name.Replace('&', '') } | Select-Object -First 1
+        if (-not $verb) {
+            # Either not pinned, or the display language isn't in $UnpinVerbNames
+            Write-Log "$appName has no 'Unpin from taskbar' action (not pinned?), skipping." -Level Info
+            continue
+        }
+
+        $verb.DoIt()
+        Write-Log "Unpinned $appName from the taskbar." -Level Success
+    }
+
+    Write-Log "COMPLETED: $($MyInvocation.MyCommand.Name)" -Level Success
+}
+catch {
+    # Cosmetic change: log and continue rather than failing the whole chezmoi apply
+    Write-Log "Script failed: $($_.Exception.Message)" -Level Warning
+}
+finally {
+    Write-Log "========================================"
+    Write-Log "EXITING: $($MyInvocation.MyCommand.Name)"
+    Write-Log "========================================"
+}
+{{- end -}}

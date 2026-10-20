@@ -49,7 +49,7 @@ color_yellow = '#d79921'
 [os]
 disabled = false
 style = "bg:color_orange fg:color_fg0"
-format = "[ $symbol WSL ]($style)"
+format = "[ $symbol{{ if .wsl }} WSL{{ end }} ]($style)"
 
 [os.symbols]
 Windows = "󰍲"
