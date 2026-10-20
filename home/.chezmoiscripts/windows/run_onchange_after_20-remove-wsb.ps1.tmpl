@@ -87,13 +87,18 @@ try {
 
     Write-Log "Configuring Windows Search Box settings..." -Level Info
 
-    # Create the registry key if it doesn't exist
-    Write-Log "Creating registry path: $registryPath" -Level Info
-    try {
-        New-Item $registryPath -Force -ErrorAction Stop | Out-Null
-        Write-Log "Successfully created registry path" -Level Success
-    } catch {
-        Write-Log "Failed to create registry path: $($_.Exception.Message)" -Level Warning
+    # Create the registry key only if it doesn't exist: New-Item -Force on an
+    # existing key deletes all its other values and subkeys
+    if (Test-Path $registryPath) {
+        Write-Log "Registry path exists: $registryPath" -Level Info
+    } else {
+        Write-Log "Creating registry path: $registryPath" -Level Info
+        try {
+            New-Item $registryPath -Force -ErrorAction Stop | Out-Null
+            Write-Log "Successfully created registry path" -Level Success
+        } catch {
+            Write-Log "Failed to create registry path: $($_.Exception.Message)" -Level Warning
+        }
     }
 
     # Set the registry value to disable dynamic content
