@@ -122,13 +122,19 @@ function Install-VSCodeExtension {
             $arguments += "--force"
         }
 
-        $result = & code $arguments 2>&1
+        # Windows PowerShell 5.1 turns redirected stderr lines into error records,
+        # which throw under "Stop". The code CLI writes harmless warnings (e.g. Node
+        # deprecations) to stderr, so judge success by the exit code instead.
+        $ErrorActionPreference = "Continue"
+        $result = & code $arguments 2>&1 | ForEach-Object { "$_" }
+        $exitCode = $LASTEXITCODE
+        $ErrorActionPreference = "Stop"
 
-        if ($LASTEXITCODE -eq 0) {
+        if ($exitCode -eq 0) {
             Write-Log "Successfully installed extension: $ExtensionId" -Level Success
         }
         else {
-            Write-Log "Failed to install extension: $ExtensionId. Output: $result" -Level Warning
+            throw "code exited with $exitCode. Output: $($result -join ' ')"
         }
     }
     catch {
