@@ -34,7 +34,8 @@ $VerbosePreference = if ($PSBoundParameters.ContainsKey('Verbose')) { "Continue"
 $Packages = @(
     @{ Id = "Git.Git"; Name = "Git" },
     @{ Id = "GPSoftware.DirectoryOpus"; Name = "Directory Opus" },
-    @{ Id = "jdx.mise"; Name = "mise" }
+    @{ Id = "jdx.mise"; Name = "mise" },
+    @{ Id = "jstarks.npiperelay"; Name = "npiperelay" }  # WSL bridge to the 1Password SSH agent
 )
 
 # Functions

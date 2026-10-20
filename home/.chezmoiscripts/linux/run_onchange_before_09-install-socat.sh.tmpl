@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# Script: run_onchange_before_09-install-socat.sh
+# Description: Install socat on WSL Ubuntu. Together with npiperelay.exe
+#              (installed by the Windows tools script) it bridges the 1Password
+#              SSH agent into WSL; see the agent block in ~/.bash/bashrc.
+# Author: {{ .chezmoi.username }}
+# Machine: {{ .chezmoi.hostname }}
+# OS: {{ .chezmoi.os }}/{{ .chezmoi.arch }}
+# Version: 1.0
+
+{{ if and .wsl (eq .osid "linux-ubuntu") (not .ephemeral) -}}
+
+set -euo pipefail
+
+log() { echo "[$(date "+%Y-%m-%d %H:%M:%S")] [$1] ${*:2}"; }
+
+if command -v socat &> /dev/null; then
+    log INFO "socat is already installed: $(command -v socat)"
+else
+    log INFO "Installing socat via apt (needs sudo)..."
+    sudo apt-get update -qq
+    sudo apt-get install -y socat
+    log SUCCESS "socat installed: $(command -v socat)"
+fi
+
+if ! command -v npiperelay.exe &> /dev/null; then
+    log WARNING "npiperelay.exe not found on the Windows PATH; run 'chezmoi apply' on Windows (installs jstarks.npiperelay), then restart WSL"
+fi
+
+{{ end -}}

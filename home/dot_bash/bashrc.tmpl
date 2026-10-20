@@ -152,7 +152,8 @@ export SSH_AUTH_SOCK="//./pipe/openssh-ssh-agent"
 # Bridge the Windows 1Password SSH agent (named pipe) into WSL as a Unix
 # socket, so the Linux ssh has the keys too — including in scripts, just
 # recipes and Ansible, where an `ssh=ssh.exe` alias doesn't apply.
-# Needs socat (apt) and npiperelay.exe (winget) on the Windows PATH.
+# Needs socat (apt) and npiperelay.exe (winget) on the Windows PATH; both are
+# installed by the chezmoi scripts (linux 09-install-socat, windows 20-install-tools).
 if command -v socat >/dev/null && command -v npiperelay.exe >/dev/null; then
     export SSH_AUTH_SOCK="$HOME/.ssh/agent.sock"
     # ssh-add exits 2 when it can't reach an agent: (re)start the relay.
