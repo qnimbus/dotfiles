@@ -24,8 +24,15 @@ param()
 if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()
   ).IsInRole([Security.Principal.WindowsBuiltInRole] 'Administrator')) {
   $argsLine = "-ExecutionPolicy Bypass -NoProfile -File `"$($MyInvocation.MyCommand.Path)`" " + $MyInvocation.UnboundArguments
-  Start-Process -Wait -FilePath PowerShell.exe -Verb RunAs -ArgumentList $argsLine
-  exit
+  # Pass the elevated run's exit code back to chezmoi, so a failure or a
+  # declined UAC prompt isn't recorded as done and is retried on the next apply
+  try {
+    $proc = Start-Process -Wait -PassThru -FilePath PowerShell.exe -Verb RunAs -ArgumentList $argsLine
+    exit $proc.ExitCode
+  } catch {
+    Write-Host "Elevation was declined or failed: $($_.Exception.Message)" -ForegroundColor Red
+    exit 1
+  }
 }
 
 # Script-level error handling

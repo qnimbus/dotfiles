@@ -123,13 +123,20 @@ export EDITOR=nano
 export BROWSER=wslview
 {{ end -}}
 export PATH="$HOME/.local/bin:$PATH"
-{{ if not .ephemeral -}}
+{{ if and .wsl (not .ephemeral) -}}
 
 # export OP_SERVICE_ACCOUNT_TOKEN="$(timeout -k 2s 5s powershell.exe -Command 'echo $env:OP_SERVICE_ACCOUNT_TOKEN' 2>/dev/null | tr -d '\r')"
 # [ -z "$OP_SERVICE_ACCOUNT_TOKEN" ] && echo "warning: OP_SERVICE_ACCOUNT_TOKEN fetch timed out or failed" >&2
 
-export GITHUB_TOKEN="$(timeout -k 2s 5s powershell.exe -Command 'echo $env:GITHUB_TOKEN' 2>/dev/null | tr -d '\r')"
-[ -z "$GITHUB_TOKEN" ] && echo "warning: GITHUB_TOKEN fetch timed out or failed" >&2
+# Borrow GITHUB_TOKEN from the Windows user environment, if it's set there.
+# WSL only: native Linux has no powershell.exe, and Git Bash already inherits
+# Windows environment variables. Skipped when the token is already present
+# (e.g. passed through WSLENV), and quiet when Windows doesn't have one.
+if [ -z "${GITHUB_TOKEN:-}" ] && command -v powershell.exe >/dev/null; then
+    _gh_token="$(timeout -k 2s 5s powershell.exe -NoProfile -NonInteractive -Command '[Environment]::GetEnvironmentVariable("GITHUB_TOKEN","User")' 2>/dev/null | tr -d '\r')"
+    [ -n "$_gh_token" ] && export GITHUB_TOKEN="$_gh_token"
+    unset _gh_token
+fi
 
 {{- end }}
 
@@ -176,9 +183,14 @@ fi
 export MISE_DEFAULT_CONFIG_FILENAME=".mise/config.toml"
 
 # For aliases
-source "${HOME%/}/.local/bin/aliases.sh"
+if [ -f "${HOME%/}/.local/bin/aliases.sh" ]; then
+    source "${HOME%/}/.local/bin/aliases.sh"
+fi
 
-eval "$(starship init bash)"
+# Starship is only installed on some machines (not Codespaces, headless or non-Ubuntu)
+if command -v starship >/dev/null; then
+    eval "$(starship init bash)"
+fi
 
 if command -v mise >/dev/null; then
     eval "$(mise activate bash)"

@@ -25,6 +25,11 @@ README.md
 .local/bin/claude-migrate
 {{- end }}
 
+{{ if eq .chezmoi.os "windows" }}
+# Git Bash on Windows uses ~/.bashrc, which sources these aliases
+!.local/bin/aliases.sh
+{{- end }}
+
 {{ if and (ne .chezmoi.os "linux") (ne .chezmoi.os "windows") }}
 # .bash/ is excluded everywhere except Linux and Windows. On Windows, Git Bash
 # reads ~/.bashrc (a symlink → ~/.bash/bashrc), so the directory must be
