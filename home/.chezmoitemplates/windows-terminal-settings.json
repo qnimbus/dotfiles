@@ -71,18 +71,6 @@
                 "hidden": false,
                 "name": "PowerShell",
                 "source": "Windows.Terminal.PowershellCore"
-            },
-            {
-                "guid": "{963ff2f7-6aed-5ce3-9d91-90d99571f53a}",
-                "hidden": false,
-                "name": "Ubuntu 24.04 LTS",
-                "source": "Windows.Terminal.Wsl"
-            },
-            {
-                "guid": "{4591b1ea-d67c-5e3c-9582-dbaf76e5348e}",
-                "hidden": false,
-                "name": "Ubuntu-24.04",
-                "source": "Microsoft.WSL"
             }
         ]
     },

@@ -1,0 +1,44 @@
+chezmoi:modify-template
+{{- /*
+  Windows Terminal settings. (chezmoi removes the marker line above before rendering.)
+
+  The managed settings live in .chezmoitemplates/windows-terminal-settings.json;
+  edit that file, not this one. On apply, WSL profiles already in the local
+  settings.json are kept: WSL gives each distro a GUID that is unique to the
+  machine, so they must not be stored in the dotfiles (other machines would
+  show them as "Profile no longer detected").
+
+  chezmoi re-add skips modify_ files, so local WSL profiles can't leak back into
+  the dotfiles. Changes made in the Windows Terminal Settings UI must be copied
+  into the managed file by hand.
+
+  When there are no local WSL profiles, the managed file is written verbatim
+  (keeping its formatting); otherwise the merged result is re-serialized.
+*/ -}}
+{{- $managedText := includeTemplate "windows-terminal-settings.json" . -}}
+{{- $managed := fromJsonc $managedText -}}
+{{- $wslSources := list "Microsoft.WSL" "Windows.Terminal.Wsl" -}}
+
+{{- $managedGuids := list -}}
+{{- range $managed.profiles.list -}}
+{{-   $managedGuids = append $managedGuids (get . "guid") -}}
+{{- end -}}
+
+{{- $keep := list -}}
+{{- if trim .chezmoi.stdin -}}
+{{-   $current := fromJsonc .chezmoi.stdin -}}
+{{-   if and (kindIs "map" $current) (hasKey $current "profiles") (kindIs "map" $current.profiles) (hasKey $current.profiles "list") -}}
+{{-     range $current.profiles.list -}}
+{{-       if and (kindIs "map" .) (has (get . "source") $wslSources) (not (has (get . "guid") $managedGuids)) -}}
+{{-         $keep = append $keep . -}}
+{{-       end -}}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}
+
+{{- if $keep -}}
+{{-   $_ := set $managed.profiles "list" (concat $managed.profiles.list $keep) -}}
+{{    toPrettyJson "    " $managed }}{{ "\n" }}
+{{- else -}}
+{{    $managedText }}
+{{- end -}}
