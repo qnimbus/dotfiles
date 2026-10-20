@@ -40,9 +40,9 @@ $VerbosePreference = if ($PSBoundParameters.ContainsKey('Verbose')) { "Continue"
 
 # VS Code Extensions to install
 $Extensions = @(
+    # GitHub Copilot is built into VS Code; installing github.copilot fails because
+    # it tries to downgrade the built-in github.copilot-chat.
     "EditorConfig.EditorConfig",
-    "github.copilot",
-    "github.copilot-chat",
     "esbenp.prettier-vscode",
     "vsls-contrib.gistfs",
     "ms-vscode.vscode-typescript-next",
