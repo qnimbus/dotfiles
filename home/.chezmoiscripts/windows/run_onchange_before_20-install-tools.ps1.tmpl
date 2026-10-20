@@ -32,6 +32,7 @@ $VerbosePreference = if ($PSBoundParameters.ContainsKey('Verbose')) { "Continue"
 # Package configuration - add packages here
 # Use 'winget search "app name"' to find the correct package ID
 $Packages = @(
+    @{ Id = "Anthropic.ClaudeCode"; Name = "Claude Code" },
     @{ Id = "Git.Git"; Name = "Git" },
     @{ Id = "GPSoftware.DirectoryOpus"; Name = "Directory Opus" },
     @{ Id = "jdx.mise"; Name = "mise" },
