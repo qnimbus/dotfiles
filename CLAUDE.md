@@ -89,6 +89,10 @@ home/
 ├── private_dot_ssh/
 │   └── config.tmpl           # SSH config with 1Password agent include (Windows-specific)
 ├── private_AppData/          # Windows: VS Code settings, Windows Terminal settings
+│   └── Local/Microsoft/Windows Terminal/
+│       └── modify_settings.json  # renders .chezmoitemplates/windows-terminal-settings.json, keeps local WSL profiles
+├── .chezmoitemplates/
+│   └── windows-terminal-settings.json  # managed Windows Terminal settings: edit here, never add WSL profiles
 ├── private_Documents/PowerShell/
 │   └── Microsoft.PowerShell_profile.ps1  # PS7 profile: aliases, chezmoi helpers, daily update checks
 └── dot_claude/skills/        # Claude Code skills: 1password, github-cli, ssh
