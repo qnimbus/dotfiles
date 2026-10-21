@@ -80,7 +80,7 @@ home/
 ├── .chezmoiignore            # platform-conditional exclusions (Linux scripts on Windows, AppData on non-Windows)
 ├── .chezmoiscripts/
 │   ├── windows/              # PowerShell bootstrap scripts (install tools, configure VS Code)
-│   └── linux/                # Bash bootstrap scripts (starship, VS Code)
+│   └── linux/                # Bash bootstrap scripts (starship, VS Code, WSL systemd + Docker Engine)
 ├── dot_gitconfig.tmpl        # Git config: SSH signing via 1Password, LF line endings
 ├── dot_bash/                 # bashrc, sources starship and aliases
 ├── dot_local/bin/aliases.sh  # shell aliases sourced by bashrc
@@ -92,7 +92,8 @@ home/
 │   └── Local/Microsoft/Windows Terminal/
 │       └── modify_settings.json  # renders .chezmoitemplates/windows-terminal-settings.json, keeps local WSL profiles
 ├── .chezmoitemplates/
-│   └── windows-terminal-settings.json  # managed Windows Terminal settings: edit here, never add WSL profiles
+│   ├── windows-terminal-settings.json  # managed Windows Terminal settings: edit here, never add WSL profiles
+│   └── wsl.conf              # keys merged into /etc/wsl.conf on WSL by run_before_11 (other keys are kept)
 ├── private_Documents/PowerShell/
 │   └── Microsoft.PowerShell_profile.ps1  # PS7 profile: aliases, chezmoi helpers, daily update checks
 └── dot_claude/skills/        # Claude Code skills: 1password, github-cli, ssh

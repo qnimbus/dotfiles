@@ -1,0 +1,111 @@
+#!/bin/bash
+
+# Script: run_before_12-install-docker.sh
+# Description: Install Docker Engine on WSL Ubuntu from Docker's official apt
+#              repository (no Docker Desktop), enable it under systemd and add
+#              the user to the docker group. Runs on every apply as a cheap
+#              check: sudo and apt are only used when something is missing.
+#              Upgrades come from the normal 'apt upgrade'.
+# Author: {{ .chezmoi.username }}
+# Machine: {{ .chezmoi.hostname }}
+# OS: {{ .chezmoi.os }}/{{ .chezmoi.arch }}
+# Version: 1.0
+
+{{ if and .wsl (eq .osid "linux-ubuntu") (not .ephemeral) -}}
+
+set -euo pipefail
+
+log() { echo "[$(date "+%Y-%m-%d %H:%M:%S")] [$1] ${*:2}"; }
+
+PACKAGES=(docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin)
+# Distro packages that conflict with Docker's own (from Docker's install guide)
+CONFLICTING=(docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc)
+SERVICES=(docker.service containerd.service)
+
+KEYRING=/etc/apt/keyrings/docker.asc
+SOURCES=/etc/apt/sources.list.d/docker.sources
+CODENAME=$(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}")
+DESIRED_SOURCES="Types: deb
+URIs: https://download.docker.com/linux/ubuntu
+Suites: $CODENAME
+Components: stable
+Signed-By: $KEYRING"
+
+is_installed() {
+    [[ "$(dpkg-query -W -f='${db:Status-Status}' "$1" 2>/dev/null)" == "installed" ]]
+}
+
+# Docker Desktop's WSL integration puts its own docker CLI in this distro
+if [[ "$(readlink -f /usr/bin/docker 2>/dev/null)" == /mnt/wsl/docker-desktop* ]]; then
+    log WARNING "Docker Desktop WSL integration is active for this distro; turn it off in Docker Desktop to use the native engine"
+fi
+
+# 1. Apt repository: keyring and a deb822 sources file for this Ubuntu release
+if [[ ! -s "$KEYRING" ]] || [[ "$(cat "$SOURCES" 2>/dev/null)" != "$DESIRED_SOURCES" ]]; then
+    log INFO "Configuring Docker's apt repository for '$CODENAME' (needs sudo)..."
+    missing_prereqs=()
+    for pkg in ca-certificates curl; do
+        is_installed "$pkg" || missing_prereqs+=("$pkg")
+    done
+    if (( ${#missing_prereqs[@]} )); then
+        sudo apt-get update -qq
+        sudo apt-get install -y "${missing_prereqs[@]}"
+    fi
+    sudo install -m 0755 -d /etc/apt/keyrings
+    tmp_key=$(mktemp)
+    trap 'rm -f "$tmp_key"' EXIT
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o "$tmp_key"
+    sudo install -m 0644 -o root -g root "$tmp_key" "$KEYRING"
+    echo "$DESIRED_SOURCES" | sudo tee "$SOURCES" > /dev/null
+    REPO_CHANGED=true
+    log SUCCESS "Docker apt repository configured: $SOURCES"
+fi
+
+# 2. Packages
+missing=()
+for pkg in "${PACKAGES[@]}"; do
+    is_installed "$pkg" || missing+=("$pkg")
+done
+if (( ${#missing[@]} )); then
+    conflicts=()
+    for pkg in "${CONFLICTING[@]}"; do
+        is_installed "$pkg" && conflicts+=("$pkg")
+    done
+    if (( ${#conflicts[@]} )); then
+        log INFO "Removing conflicting packages: ${conflicts[*]}"
+        sudo apt-get remove -y "${conflicts[@]}"
+    fi
+    log INFO "Installing ${missing[*]} (needs sudo)..."
+    sudo apt-get update -qq
+    sudo apt-get install -y "${PACKAGES[@]}"
+    log SUCCESS "Docker installed: $(docker --version)"
+elif [[ "${REPO_CHANGED:-false}" == "true" ]]; then
+    sudo apt-get update -qq
+fi
+
+# 3. systemd units (only possible once WSL runs systemd; see script 11)
+if [[ "$(ps -p 1 -o comm= 2>/dev/null)" == "systemd" ]]; then
+    for svc in "${SERVICES[@]}"; do
+        if ! systemctl is-enabled --quiet "$svc" 2>/dev/null; then
+            log INFO "Enabling and starting $svc (needs sudo)..."
+            sudo systemctl enable --now "$svc"
+        fi
+    done
+    if ! systemctl is-active --quiet docker.service; then
+        log WARNING "docker.service is enabled but not running; check 'systemctl status docker'"
+    fi
+else
+    log WARNING "systemd is not running, so Docker can't be started; run 'wsl --shutdown' from Windows and reopen WSL"
+fi
+
+# 4. Run docker without sudo. The docker group is root-equivalent, see README.
+user="$(id -un)"
+if ! id -nG "$user" | tr ' ' '\n' | grep -qx docker; then
+    log INFO "Adding $user to the docker group (needs sudo)..."
+    sudo usermod -aG docker "$user"
+    log WARNING "Group change applies to new logins: run 'wsl --shutdown' from Windows, or 'newgrp docker' in this shell"
+fi
+
+log INFO "Docker is installed: $(docker --version)"
+
+{{ end -}}

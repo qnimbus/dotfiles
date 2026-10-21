@@ -1,0 +1,90 @@
+#!/bin/bash
+
+# Script: run_before_11-configure-wsl-conf.sh
+# Description: Merge the keys from .chezmoitemplates/wsl.conf into /etc/wsl.conf
+#              (enables systemd). Runs on every apply; it only needs sudo when
+#              /etc/wsl.conf differs, so it fixes drift without prompting otherwise.
+# Author: {{ .chezmoi.username }}
+# Machine: {{ .chezmoi.hostname }}
+# OS: {{ .chezmoi.os }}/{{ .chezmoi.arch }}
+# Version: 1.0
+
+{{ if and .wsl (eq .osid "linux-ubuntu") (not .ephemeral) -}}
+
+set -euo pipefail
+
+log() { echo "[$(date "+%Y-%m-%d %H:%M:%S")] [$1] ${*:2}"; }
+
+WSL_CONF=/etc/wsl.conf
+
+# Desired keys, rendered from .chezmoitemplates/wsl.conf
+DESIRED=$(cat << 'EOF'
+{{ includeTemplate "wsl.conf" . }}
+EOF
+)
+
+# Print the INI file $1 with key $3 in section [$2] set to $4. An existing key
+# is replaced in place (duplicates dropped), a missing key goes right after the
+# section header, and a missing section is appended. Everything else is kept.
+ini_set() {
+    awk -v sec="$2" -v key="$3" -v val="$4" '
+        function header(line) {
+            sub(/^[ \t]*\[[ \t]*/, "", line); sub(/[ \t]*\].*$/, "", line); return line
+        }
+        function is_key(line) { return line ~ ("^[ \t]*" key "[ \t]*=") }
+        # Pass 1: find out whether the section and the key exist
+        NR == FNR {
+            if ($0 ~ /^[ \t]*\[/) { cur = header($0); if (cur == sec) has_sec = 1 }
+            else if (cur == sec && is_key($0)) has_key = 1
+            next
+        }
+        # Pass 2: write the result
+        $0 ~ /^[ \t]*\[/ {
+            cur = header($0); print
+            if (cur == sec && !has_key && !done) { print key "=" val; done = 1 }
+            next
+        }
+        cur == sec && is_key($0) { if (!done) { print key "=" val; done = 1 }; next }
+        { print }
+        END {
+            if (!has_sec) { if (FNR > 0) print ""; print "[" sec "]"; print key "=" val }
+        }
+    ' "$1" "$1"
+}
+
+tmp_current=$(mktemp)
+tmp_new=$(mktemp)
+trap 'rm -f "$tmp_current" "$tmp_new"' EXIT
+
+cat "$WSL_CONF" > "$tmp_current" 2>/dev/null || true
+cp "$tmp_current" "$tmp_new"
+
+section=""
+while IFS= read -r line; do
+    line="${line%%#*}"                                   # strip comments
+    line="$(echo "$line" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+    [[ -z "$line" ]] && continue
+    if [[ "$line" =~ ^\[(.+)\]$ ]]; then
+        section="${BASH_REMATCH[1]}"
+    elif [[ "$line" =~ ^([^=[:space:]]+)[[:space:]]*=[[:space:]]*(.*)$ ]]; then
+        ini_set "$tmp_new" "$section" "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}" > "$tmp_new.out"
+        mv "$tmp_new.out" "$tmp_new"
+    fi
+done <<< "$DESIRED"
+
+if cmp -s "$tmp_current" "$tmp_new"; then
+    log INFO "$WSL_CONF is up to date"
+else
+    log INFO "Updating $WSL_CONF (needs sudo):"
+    diff -u "$tmp_current" "$tmp_new" | tail -n +3 || true
+    sudo install -m 0644 -o root -g root "$tmp_new" "$WSL_CONF"
+    log SUCCESS "$WSL_CONF updated"
+    log WARNING "Run 'wsl --shutdown' from Windows and reopen WSL for the change to take effect"
+fi
+
+# systemd only starts after WSL restarts with [boot] systemd=true
+if [[ "$(ps -p 1 -o comm= 2>/dev/null)" != "systemd" ]]; then
+    log WARNING "systemd is not running as PID 1 yet; run 'wsl --shutdown' from Windows and reopen WSL"
+fi
+
+{{ end -}}

@@ -130,6 +130,39 @@ chezmoi’s `.gitconfig` templates a Windows-specific `sshCommand` to use it.
 
 ---
 
+## 🐳 Docker in WSL (no Docker Desktop)
+
+On WSL Ubuntu, two scripts run on **every** `chezmoi apply` / `chezmoi update`.
+Each checks first without sudo and only asks for your password when something is missing or has drifted:
+
+| Script | What it ensures |
+|--------|-----------------|
+| `run_before_11-configure-wsl-conf.sh` | Merges the keys in `.chezmoitemplates/wsl.conf` (`[boot] systemd=true`) into `/etc/wsl.conf`, keeping all other settings |
+| `run_before_12-install-docker.sh` | Docker's official apt repo, `docker-ce`, `docker-ce-cli`, `containerd.io`, `docker-buildx-plugin`, `docker-compose-plugin`; `docker` and `containerd` enabled in systemd; you in the `docker` group |
+
+Package upgrades come from the normal `sudo apt upgrade`, not from chezmoi.
+
+**Manual step:** after the first run (or any `wsl.conf` change), restart WSL so systemd starts and the new group membership applies:
+
+```powershell
+wsl --shutdown   # from Windows; then reopen the Ubuntu terminal
+```
+
+Check it with:
+
+```bash
+systemctl is-system-running        # "running" (or "degraded")
+systemctl status docker --no-pager
+docker run --rm hello-world
+docker compose version
+```
+
+**Security:** members of the `docker` group can control the Docker daemon, which runs as root.
+That is the same as passwordless root (for example `docker run -v /:/host ...`).
+Only add trusted users. For stricter isolation, use [rootless Docker](https://docs.docker.com/engine/security/rootless/).
+
+---
+
 ## 🧹 Line-ending policy
 
 Dotfiles are committed with **LF endings** for portability.
