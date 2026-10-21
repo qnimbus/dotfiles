@@ -1,0 +1,118 @@
+{{ if and (eq .osid "windows") (not .ephemeral) (not .headless) -}}
+#Requires -Version 5.1
+
+<#
+.SYNOPSIS
+    Installs RustDesk machine-wide with Chocolatey.
+
+.DESCRIPTION
+    RustDesk is no longer in the winget repository, so it comes from
+    Chocolatey instead (which installs the official MSI for all users, with
+    the Windows service). Chocolatey itself is installed with winget when
+    missing. Only asks for administrator rights when something needs
+    installing. Upgrade later with 'choco upgrade rustdesk' (as admin).
+
+.NOTES
+    Author: {{ .chezmoi.username }}
+    Machine: {{ .chezmoi.hostname }}
+    OS: {{ .chezmoi.os }}/{{ .chezmoi.arch }}
+    Version: 2.0
+#>
+
+[CmdletBinding()]
+param()
+
+$ErrorActionPreference = "Stop"
+$ProgressPreference = 'SilentlyContinue'
+
+$PackageId = "rustdesk"
+$ChocoExe = Join-Path $env:ProgramData "chocolatey\bin\choco.exe"
+
+function Write-Log {
+    param(
+        [Parameter(Mandatory = $true)][string]$Message,
+        [ValidateSet("Info", "Warning", "Error", "Success")][string]$Level = "Info"
+    )
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $color = switch ($Level) {
+        "Info"    { "White" }
+        "Warning" { "Yellow" }
+        "Error"   { "Red" }
+        "Success" { "Green" }
+    }
+    Write-Host "[$timestamp] [$Level] $Message" -ForegroundColor $color
+}
+
+function Test-IsAdmin {
+    $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+    return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+# True when Chocolatey has the package installed (reading the local list needs no admin rights)
+function Test-ChocoPackageInstalled {
+    if (-not (Test-Path $ChocoExe)) { return $false }
+    $ErrorActionPreference = "Continue"
+    $lines = & $ChocoExe list --exact $PackageId --limit-output 2>$null
+    return [bool]($lines | Where-Object { $_ -like "$PackageId|*" })
+}
+
+if (Test-ChocoPackageInstalled) {
+    Write-Log "RustDesk is already installed with Chocolatey, skipping." -Level Success
+    exit 0
+}
+
+# --- Self-elevate (only now that an install is needed) ---
+if (-not (Test-IsAdmin)) {
+    Write-Log "Requesting administrator rights to install RustDesk (UAC prompt)..."
+    $argsLine = "-ExecutionPolicy Bypass -NoProfile -File `"$($MyInvocation.MyCommand.Path)`""
+    # Pass the elevated run's exit code back to chezmoi, so a failure or a
+    # declined UAC prompt is retried on the next apply
+    try {
+        $proc = Start-Process -Wait -PassThru -FilePath PowerShell.exe -Verb RunAs -ArgumentList $argsLine
+        exit $proc.ExitCode
+    } catch {
+        Write-Log "Elevation was declined or failed: $($_.Exception.Message)" -Level Error
+        exit 1
+    }
+}
+
+try {
+    Write-Log "========================================"
+    Write-Log "STARTING: $($MyInvocation.MyCommand.Name)"
+    Write-Log "========================================"
+
+    if (-not (Test-Path $ChocoExe)) {
+        Write-Log "Installing Chocolatey with winget..."
+        & winget install --id Chocolatey.Chocolatey --exact --silent --scope machine --accept-source-agreements --accept-package-agreements --source winget
+        if ($LASTEXITCODE -ne 0) {
+            throw "winget failed to install Chocolatey (exit code $LASTEXITCODE)"
+        }
+        if (-not (Test-Path $ChocoExe)) {
+            throw "Chocolatey was installed but $ChocoExe was not found"
+        }
+        Write-Log "Chocolatey installed." -Level Success
+    }
+
+    Write-Log "Installing RustDesk with Chocolatey..."
+    & $ChocoExe install $PackageId --yes --no-progress
+    # 3010 / 1641 = installed, reboot required
+    if ($LASTEXITCODE -notin 0, 1641, 3010) {
+        throw "choco install $PackageId exited with code $LASTEXITCODE"
+    }
+    if ($LASTEXITCODE -ne 0) {
+        Write-Log "RustDesk installed; a reboot is needed to finish." -Level Warning
+    }
+
+    Write-Log "RustDesk installed for all users." -Level Success
+}
+catch {
+    Write-Log "Script failed: $($_.Exception.Message)" -Level Error
+    Write-Log "chezmoi will retry this script on the next apply." -Level Error
+    exit 1
+}
+finally {
+    Write-Log "========================================"
+    Write-Log "EXITING: $($MyInvocation.MyCommand.Name)"
+    Write-Log "========================================"
+}
+{{- end -}}
