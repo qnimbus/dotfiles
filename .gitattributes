@@ -1,2 +1,6 @@
 # Always store files with LF endings
 * text eol=lf
+
+# UniGetUI (.NET) rewrites its JSON settings with CRLF. Stored as LF in the
+# repo, but checked out as CRLF so the deployed file matches what the app writes.
+home/private_AppData/Local/UniGetUI/**/*.json text eol=crlf
