@@ -22,6 +22,11 @@ README.md
 !.claude/plugins/installed_plugins.json
 !.claude/plugins/known_marketplaces.json
 
+{{ if not (or (eq .chezmoi.os "windows") .wsl) }}
+# Git signature verification keys, only used on Windows and WSL
+.ssh/allowed_signers
+{{- end }}
+
 {{ if ne .chezmoi.os "linux" }}
 *.sh
 **/*/*.sh

@@ -20,6 +20,8 @@
   Linux one, so WindowsApps is searched under every Windows user.
 */ -}}
 {{- $desktop := and (not .ephemeral) (not .headless) -}}
+{{- /* allowedSignersFile lets `git log --show-signature` verify commits; keep ~/.ssh/allowed_signers in sync with user.signingkey */ -}}
+{{- $verify := or (eq .chezmoi.os "windows") .wsl -}}
 {{- $mustSign := and $desktop (or (eq .chezmoi.os "windows") .wsl (eq .chezmoi.os "darwin")) -}}
 {{- $candidates := list -}}
 {{- $default := "" -}}
@@ -51,9 +53,14 @@
 [gpg]
 	format = ssh
 
-{{ if $signProgram -}}
+{{ if or $signProgram $verify -}}
 [gpg "ssh"]
+{{- if $signProgram }}
   program = "{{ $signProgram }}"
+{{- end }}
+{{- if $verify }}
+  allowedSignersFile = ~/.ssh/allowed_signers
+{{- end }}
 {{- end }}
 
 [worktree]
