@@ -1,0 +1,11 @@
+{
+  "install-updates": {
+    "Frequency": "AfterEveryUpdateCheck",
+    "IntervalSeconds": 3600,
+    "Days": 127,
+    "StartMinutes": 180,
+    "GraceMinutes": -1,
+    "InstallTargets": "AllPackages",
+    "ConfiguredAtUtc": "2026-10-21T12:00:48.0289022Z"
+  }
+}

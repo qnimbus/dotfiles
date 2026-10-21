@@ -1,0 +1,9 @@
+{
+  "Scoop": true,
+  "Npm": true,
+  "Bun": true,
+  "Pip": true,
+  "Cargo": true,
+  "vcpkg": true,
+  ".NET Tool": true
+}
