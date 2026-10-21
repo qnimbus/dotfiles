@@ -31,12 +31,14 @@ $VerbosePreference = if ($PSBoundParameters.ContainsKey('Verbose')) { "Continue"
 
 # Package configuration - add packages here
 # Use 'winget search "app name"' to find the correct package ID
+# Optional Scope ("machine" or "user") overrides the package's default install scope
 $Packages = @(
     @{ Id = "Anthropic.ClaudeCode"; Name = "Claude Code" },
     @{ Id = "Git.Git"; Name = "Git" },
     @{ Id = "GPSoftware.DirectoryOpus"; Name = "Directory Opus" },
     @{ Id = "jdx.mise"; Name = "mise" },
-    @{ Id = "jstarks.npiperelay"; Name = "npiperelay" }  # WSL bridge to the 1Password SSH agent
+    @{ Id = "jstarks.npiperelay"; Name = "npiperelay" },  # WSL bridge to the 1Password SSH agent
+    @{ Id = "Tailscale.Tailscale"; Name = "Tailscale"; Scope = "machine" }  # one install for all users
 )
 
 # Functions
@@ -118,13 +120,23 @@ function Install-Package {
         [string]$PackageId,
 
         [Parameter(Mandatory = $true)]
-        [string]$PackageName
+        [string]$PackageName,
+
+        # "machine", "user", or empty for the package's default
+        [Parameter(Mandatory = $false)]
+        [string]$Scope
     )
 
     Write-Log "Installing $PackageName ($PackageId)..." -Level Info
 
+    $wingetArgs = @("install", "--id", $PackageId, "--exact", "--silent", "--accept-source-agreements", "--accept-package-agreements", "--source", "winget")
+    if ($Scope) {
+        # Machine-scope installers ask for admin rights (UAC prompt) themselves
+        $wingetArgs += @("--scope", $Scope)
+    }
+
     try {
-        & winget install --id $PackageId --exact --silent --accept-source-agreements --accept-package-agreements --source winget
+        & winget @wingetArgs
 
         if ($LASTEXITCODE -eq 0) {
             Write-Log "Successfully installed $PackageName" -Level Success
@@ -170,7 +182,7 @@ try {
             }
 
             # Install the package
-            $result = Install-Package -PackageId $package.Id -PackageName $package.Name
+            $result = Install-Package -PackageId $package.Id -PackageName $package.Name -Scope $package.Scope
             if ($result) {
                 $successCount++
             } else {
