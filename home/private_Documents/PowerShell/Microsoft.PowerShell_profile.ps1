@@ -378,53 +378,6 @@ $Env:__ShellDepth = [int] $Env:__ShellDepth + 1
 # Set up CTRL-D key handler for Unix-like exit behavior
 Set-CtrlDHandler
 
-# Set up GITHUB_TOKEN from 1Password
-# Temporarily disabled, not sure if we need this or if it causes more issues than it solves - can re-enable later with better error handling and maybe a less intrusive prompt
-if (-not (Test-IsVSCode) -and $false) {
-    try {
-        if (Get-Command op.exe -ErrorAction SilentlyContinue) {
-            # Prompt user with timeout
-            $timeoutSeconds = 3
-            $defaultResponse = "N"
-            $response = $defaultResponse
-
-            Write-Host "Load GitHub token from 1Password? (Y/N) [Default: $defaultResponse] " -NoNewLine -ForegroundColor Cyan
-            Write-Host "($timeoutSeconds seconds) " -NoNewLine -ForegroundColor Gray
-
-            $timer = 0
-            while ((-not $Host.UI.RawUI.KeyAvailable) -and ($timer -lt $timeoutSeconds)) {
-                Start-Sleep -Milliseconds 100
-                $timer += 0.1
-            }
-
-            if ($Host.UI.RawUI.KeyAvailable) {
-                $response = ($Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")).Character.ToString().ToUpper()
-            }
-
-            Write-Host ""
-
-            if ($response -eq "Y") {
-                Write-Host "Loading GitHub token from 1Password..." -ForegroundColor Cyan
-                $githubToken = op.exe read "op://Private/GitHub/GitHub Personal Access Tokens/General personal access token" 2>$null
-                if ($githubToken -and $githubToken.Trim() -ne "") {
-                    $Env:GITHUB_TOKEN = $githubToken.Trim()
-                    Write-Host "✓ GITHUB_TOKEN loaded from 1Password" -ForegroundColor Green
-                } else {
-                    Write-Host "⚠ Could not retrieve GITHUB_TOKEN from 1Password" -ForegroundColor Yellow
-                }
-            } else {
-                Write-Host "Skipping GitHub token setup" -ForegroundColor Gray
-            }
-        } else {
-            Write-Host "⚠ 1Password CLI (op.exe) not found - GITHUB_TOKEN not set" -ForegroundColor Yellow
-        }
-    } catch {
-        Write-Host "⚠ Error loading GITHUB_TOKEN from 1Password: $($_.Exception.Message)" -ForegroundColor Yellow
-    }
-} else {
-    Write-Host "Skipping GitHub token setup" -ForegroundColor Gray
-}
-
 ################################################################################
 # DAILY UPDATE CHECK LOGIC (DISABLED)
 # Winget and scoop update checks have been replaced by UniGetUI (WingetUI),
