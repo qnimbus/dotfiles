@@ -1,11 +1,4 @@
 {
-  "permissions": {
-    "deny": [
-      "Bash(op.exe:*)",
-      "Bash(*op.exe*)",
-      "Bash(op:*)"
-    ]
-  },
   "model": "opus[1m]",
   "worktree": {
     "baseRef": "fresh"

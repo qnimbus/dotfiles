@@ -27,6 +27,11 @@ README.md
 .ssh/allowed_signers
 {{- end }}
 
+{{ if not .wsl }}
+# op -> op.exe wrapper, only for WSL
+.local/bin/op
+{{- end }}
+
 {{ if ne .chezmoi.os "linux" }}
 *.sh
 **/*/*.sh

@@ -9,7 +9,7 @@
 
 {{ if and (eq .osid "linux-ubuntu") (not .ephemeral) (not .headless) -}}
 
-# mise config hash: {{ include "exact_dot_config/mise/config.toml" | sha256sum }}
+# mise config hash: {{ include "exact_dot_config/mise/config.toml.tmpl" | sha256sum }}
 
 set -euo pipefail  # Exit on error, undefined vars, pipe failures
 

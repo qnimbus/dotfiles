@@ -120,6 +120,7 @@ Full docs: <https://www.chezmoi.io/user-guide/password-managers/1password/>
 - `~/.ssh/config` includes the 1Password config file (Windows path)
 - The `dot_claude/skills/1password/` skill provides helpers for retrieving secrets without displaying them in output
 - Never hard-code credentials; use `op read` or the 1password skill instead
+- On WSL, `~/.local/bin/op` is a wrapper that runs the Windows `op.exe`, so every use goes through the 1Password app's authorization prompt. That's why `exact_dot_config/mise/config.toml.tmpl` leaves `1password` out of mise's tools on WSL: a mise-installed Linux `op` would shadow the wrapper
 
 **Template functions available in `.tmpl` files:**
 

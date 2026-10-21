@@ -361,6 +361,10 @@ function czd { chezmoi diff @args }
 function cze { chezmoi edit @args }
 function cza { chezmoi apply @args }
 
+# 1Password CLI session helpers (same as opin/opout in aliases.sh)
+function opin { op signin | Invoke-Expression }
+function opout { op signout; Remove-Item Env:OP_SESSION_* -ErrorAction SilentlyContinue }
+
 ################################################################################
 # INITIALIZATION
 ################################################################################

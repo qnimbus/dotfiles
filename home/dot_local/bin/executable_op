@@ -1,0 +1,4 @@
+#!/bin/sh
+# WSL only: run the Windows 1Password CLI, so every use goes through the
+# 1Password app's authorization prompt instead of a Linux session token.
+exec op.exe "$@"
