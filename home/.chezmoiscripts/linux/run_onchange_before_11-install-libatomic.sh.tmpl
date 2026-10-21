@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# Script: run_onchange_before_11-install-libatomic.sh
+# Description: Install libatomic1 on Ubuntu. The official Node.js builds link
+#              against libatomic.so.1, so 'mise install' fails on Node without
+#              it. Runs before the mise-install script (after_20).
+# Author: {{ .chezmoi.username }}
+# Machine: {{ .chezmoi.hostname }}
+# OS: {{ .chezmoi.os }}/{{ .chezmoi.arch }}
+# Version: 1.0
+
+{{ if and (eq .osid "linux-ubuntu") (not .ephemeral) (not .headless) -}}
+
+set -euo pipefail
+
+log() { echo "[$(date "+%Y-%m-%d %H:%M:%S")] [$1] ${*:2}"; }
+
+if dpkg-query -W -f='${Status}' libatomic1 2>/dev/null | grep -q "install ok installed"; then
+    log INFO "libatomic1 is already installed"
+    exit 0
+fi
+
+log INFO "Installing libatomic1 via apt (needs sudo)..."
+sudo apt-get update -qq
+sudo apt-get install -y libatomic1
+log SUCCESS "libatomic1 installed"
+
+{{ end -}}
