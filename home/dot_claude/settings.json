@@ -22,6 +22,32 @@
       }
     }
   },
+  "permissions": {
+    "deny": [
+      "mcp__unifi-network__unifi_adopt_device",
+      "mcp__unifi-network__unifi_restart_device",
+      "mcp__unifi-network__unifi_power_cycle_port",
+      "mcp__unifi-network__unifi_authorize_guest",
+      "mcp__unifi-network__unifi_create_network",
+      "mcp__unifi-network__unifi_update_network",
+      "mcp__unifi-network__unifi_delete_network",
+      "mcp__unifi-network__unifi_create_wifi",
+      "mcp__unifi-network__unifi_update_wifi",
+      "mcp__unifi-network__unifi_delete_wifi",
+      "mcp__unifi-network__unifi_create_voucher",
+      "mcp__unifi-network__unifi_delete_voucher",
+      "mcp__unifi-network__unifi_bulk_delete_vouchers",
+      "mcp__unifi-network__unifi_create_firewall_zone",
+      "mcp__unifi-network__unifi_update_firewall_zone",
+      "mcp__unifi-network__unifi_delete_firewall_zone",
+      "mcp__unifi-network__unifi_create_acl_rule",
+      "mcp__unifi-network__unifi_update_acl_rule",
+      "mcp__unifi-network__unifi_delete_acl_rule",
+      "mcp__unifi-network__unifi_create_traffic_matching_list",
+      "mcp__unifi-network__unifi_update_traffic_matching_list",
+      "mcp__unifi-network__unifi_delete_traffic_matching_list"
+    ]
+  },
   "effortLevel": "xhigh",
   "awaySummaryEnabled": false,
   "autoUpdatesChannel": "latest",
