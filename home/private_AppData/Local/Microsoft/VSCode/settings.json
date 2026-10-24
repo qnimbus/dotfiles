@@ -16,5 +16,8 @@
     "redhat.telemetry.enabled": false,
     "security.allowedUNCHosts": [
         "nas.lan.home.vwn.io"
-    ]
+    ],
+    "remote.SSH.remotePlatform": {
+        "10.10.0.21": "linux"
+    }
 }
