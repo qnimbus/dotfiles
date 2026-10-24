@@ -1,0 +1,73 @@
+{{ if eq .osid "windows" -}}
+#Requires -Version 5.1
+
+<#
+.SYNOPSIS
+    Installs the tools listed in the global mise config.
+
+.DESCRIPTION
+    Runs 'mise install' for ~/.config/mise/config.toml. Re-runs whenever that
+    config changes in the chezmoi source state (see the hash below). mise
+    itself is installed by run_onchange_before_20-install-tools via winget.
+
+.NOTES
+    Author: {{ .chezmoi.username }}
+    Machine: {{ .chezmoi.hostname }}
+    OS: {{ .chezmoi.os }}/{{ .chezmoi.arch }}
+    Version: 1.0
+#>
+
+# mise config hash: {{ include "exact_dot_config/mise/config.toml.tmpl" | sha256sum }}
+
+[CmdletBinding()]
+param()
+
+$ErrorActionPreference = "Stop"
+
+function Write-Log {
+    param(
+        [Parameter(Mandatory = $true)][string]$Message,
+        [ValidateSet("Info", "Warning", "Error", "Success")][string]$Level = "Info"
+    )
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $color = switch ($Level) {
+        "Info"    { "White" }
+        "Warning" { "Yellow" }
+        "Error"   { "Red" }
+        "Success" { "Green" }
+    }
+    Write-Host "[$timestamp] [$Level] $Message" -ForegroundColor $color
+}
+
+try {
+    Write-Log "========================================"
+    Write-Log "STARTING: $($MyInvocation.MyCommand.Name)"
+    Write-Log "========================================"
+
+    # If winget installed mise earlier in this same apply, this process still
+    # has the old PATH, so reload it from the registry
+    $env:Path = @(
+        [Environment]::GetEnvironmentVariable('Path', 'Machine'),
+        [Environment]::GetEnvironmentVariable('Path', 'User')
+    ) -join ';'
+
+    $mise = Get-Command mise -ErrorAction SilentlyContinue
+    if (-not $mise) { throw "mise not found in PATH. Is the jdx.mise winget package installed?" }
+    Write-Log "mise found: $(& mise --version)" -Level Info
+
+    & mise install --yes
+    if ($LASTEXITCODE -ne 0) { throw "'mise install' exited with code $LASTEXITCODE" }
+
+    Write-Log "mise tools installed successfully" -Level Success
+}
+catch {
+    Write-Log "Script failed: $($_.Exception.Message)" -Level Error
+    Write-Log "chezmoi will retry on the next apply." -Level Error
+    exit 1
+}
+finally {
+    Write-Log "========================================"
+    Write-Log "EXITING: $($MyInvocation.MyCommand.Name)"
+    Write-Log "========================================"
+}
+{{- end -}}
