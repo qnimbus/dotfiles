@@ -9,6 +9,9 @@ README.md
 .config/wslu/**
 .config/go
 .config/go/**
+# gh keeps its login token in hosts.yml; deleting it logs gh out
+.config/gh
+.config/gh/**
 
 # Claude (default: ignore all runtime state)
 .claude/**
