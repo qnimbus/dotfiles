@@ -3,6 +3,20 @@
   "worktree": {
     "baseRef": "fresh"
   },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$HOME/.claude/hooks/op-prompt-notice.js\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
   "enabledPlugins": {
     "gitops-skills@fluxcd": true,
     "typesafe@typesafe-ai": true,
