@@ -3,7 +3,7 @@
 // 1Password approval prompt, show a one-line reason in Claude Code and as a
 // Windows toast (also from WSL). Never blocks: any error just exits 0.
 "use strict";
-const { execFileSync, spawn } = require("child_process");
+const { execFileSync, spawnSync } = require("child_process");
 const { readFileSync } = require("fs");
 
 function isWsl() {
@@ -54,9 +54,9 @@ function toast(line) {
     $null = $t.Item(1).AppendChild($xml.CreateTextNode('${esc(line)}'))
     $app = '{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\\WindowsPowerShell\\v1.0\\powershell.exe'
     [Windows.UI.Notifications.ToastNotificationManager]::CreateToastNotifier($app).Show([Windows.UI.Notifications.ToastNotification]::new($xml))`;
-  const child = spawn("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", script], { detached: true, stdio: "ignore", windowsHide: true });
-  child.on("error", () => {});
-  child.unref();
+  // Wait for it: Claude Code ends a hook's leftover child processes when the
+  // hook exits, which killed a detached PowerShell before the toast showed.
+  spawnSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", script], { stdio: "ignore", windowsHide: true, timeout: 8000 });
 }
 
 try {
