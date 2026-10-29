@@ -12,6 +12,16 @@
   {{- end -}}
 {{- end -}}
 
+{{- /* On WSL, find the Windows profile dir: the Windows username can differ
+       from the Linux one. Falls back to /mnt/c/Users/<linux user>. */ -}}
+{{- $winHome := "" -}}
+{{- if $isWSL -}}
+{{-   $winHome = output "sh" "-c" "p=$(cd /mnt/c && cmd.exe /d /c 'echo %USERPROFILE%' 2>/dev/null | tr -d '\\r'); [ -n \"$p\" ] && wslpath -u \"$p\" || true" | trim -}}
+{{-   if not $winHome -}}
+{{-     $winHome = printf "/mnt/c/Users/%s" .chezmoi.username -}}
+{{-   end -}}
+{{- end -}}
+
 {{/* detect GitHub codespaces, VSCode remote containers, Docker containers, Multipass VMs, and Vagrant boxes */}}
 {{- if or (env "CODESPACES") (env "REMOTE_CONTAINERS_IPC") (eq .chezmoi.username "root" "ubuntu" "vagrant" "vscode") -}}
 {{-   $ephemeral = true -}}
@@ -54,3 +64,4 @@ data:
   hostname: {{ $hostname | quote }}
   osid: {{ $osID | quote }}
   wsl: {{ $isWSL }}
+  winhome: {{ $winHome | quote }}

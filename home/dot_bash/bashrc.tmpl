@@ -166,7 +166,7 @@ if command -v socat >/dev/null && command -v npiperelay.exe >/dev/null; then
     # the server's MaxAuthTries. 1Password's generated per-host config pins one
     # key per host, but ssh rejects it in place (0777 on /mnt/c), so mirror it
     # with sane modes; its ~/.ssh/1Password/*.pub paths then resolve here too.
-    OP_SSH_SRC="/mnt/c/Users/{{ .chezmoi.username }}/.ssh/1Password"
+    OP_SSH_SRC="{{ get . "winhome" | default (printf "/mnt/c/Users/%s" .chezmoi.username) }}/.ssh/1Password"
     if [ -f "$OP_SSH_SRC/config" ] && [ "$OP_SSH_SRC/config" -nt "$HOME/.ssh/1Password/config" ]; then
         rm -rf "$HOME/.ssh/1Password"
         mkdir -p -m 700 "$HOME/.ssh/1Password"

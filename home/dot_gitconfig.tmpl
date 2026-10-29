@@ -16,8 +16,8 @@
   non-headless machines.
 
   Classic installs live in Program Files; the Store (MSIX) version only exposes
-  app aliases in WindowsApps. In WSL the Windows username can differ from the
-  Linux one, so WindowsApps is searched under every Windows user.
+  app aliases in WindowsApps. In WSL that's under the Windows profile
+  (.winhome), since the Windows username can differ from the Linux one.
 */ -}}
 {{- $desktop := and (not .ephemeral) (not .headless) -}}
 {{- /* allowedSignersFile lets `git log --show-signature` verify commits; keep ~/.ssh/allowed_signers in sync with user.signingkey */ -}}
@@ -29,8 +29,9 @@
 {{-   $default = printf "%s/AppData/Local/Microsoft/WindowsApps/op-ssh-sign.exe" .chezmoi.homeDir -}}
 {{-   $candidates = list "C:/Program Files/1Password/app/8/op-ssh-sign.exe" $default -}}
 {{- else if .wsl -}}
-{{-   $default = printf "/mnt/c/Users/%s/AppData/Local/Microsoft/WindowsApps/op-ssh-sign-wsl.exe" .chezmoi.username -}}
-{{-   $candidates = concat (list "/mnt/c/Program Files/1Password/app/8/op-ssh-sign-wsl") (glob "/mnt/c/Users/*/AppData/Local/Microsoft/WindowsApps/op-ssh-sign-wsl.exe") -}}
+{{-   $winHome := get . "winhome" | default (printf "/mnt/c/Users/%s" .chezmoi.username) -}}
+{{-   $default = printf "%s/AppData/Local/Microsoft/WindowsApps/op-ssh-sign-wsl.exe" $winHome -}}
+{{-   $candidates = list "/mnt/c/Program Files/1Password/app/8/op-ssh-sign-wsl" $default -}}
 {{- else if eq .chezmoi.os "darwin" -}}
 {{-   $default = "/Applications/1Password.app/Contents/MacOS/op-ssh-sign" -}}
 {{-   $candidates = list $default -}}
